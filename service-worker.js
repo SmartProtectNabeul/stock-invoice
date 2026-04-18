@@ -4,7 +4,7 @@ const urlsToCache = [
   "/index.html",
   "/style.css",
   "/app.js",
-  "/icon.png"
+  "/stock.png"
 ];
 
 // Install → cache files
