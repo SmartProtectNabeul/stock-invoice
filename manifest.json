@@ -1,7 +1,7 @@
 {
   "name": "Stock-invoicing",
   "short_name": "Stock-invoicing",
-  "start_url": "/index.html",
+  "start_url": "/stock-invoice/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
