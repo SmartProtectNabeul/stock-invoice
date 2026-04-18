@@ -2072,11 +2072,41 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
 
         // Start
         init();
-        // here nebda appp buiding 
+
+        // Aggressively save data when app is about to close or go to background
+        // This prevents data loss in Chrome PWA mode
+        window.addEventListener('beforeunload', () => {
+            saveToStorage();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                saveToStorage();
+            }
+        });
+
+        window.addEventListener('pagehide', () => {
+            saveToStorage();
+        });
+
+        // Service Worker registration with update handling
         if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/stock-invoice/service-worker.js")
-    .then(() => console.log("Service Worker Registered"));
-}
+            navigator.serviceWorker.register("/stock-invoice/service-worker.js")
+                .then(reg => {
+                    console.log("Service Worker Registered");
+                    // Check for updates
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'activated') {
+                                console.log('New service worker activated, refreshing...');
+                                // The new SW with network-first is now active
+                            }
+                        });
+                    });
+                })
+                .catch(err => console.error("SW registration failed:", err));
+        }
     </script>
 </body>
 
