@@ -852,6 +852,13 @@
             background: linear-gradient(135deg, #1a1d2e 0%, #252a3a 100%);
             flex-direction: column;
             gap: 24px;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .auth-container.loading {
+            pointer-events: none;
+            opacity: 0;
         }
 
         .auth-card {
@@ -1768,21 +1775,30 @@
         // =============================================
         window.addEventListener('DOMContentLoaded', async () => {
             try {
+                // Preload session check silently (don't show login yet)
+                const loginContainer = document.getElementById('login-container');
+                if (loginContainer) loginContainer.classList.add('loading');
+                
                 await authManager.init();
-                await authManager.updateUI();
                 
                 // If user is logged in, initialize the app
                 if (authManager.getCurrentUser()) {
                     console.log('User is logged in, initializing app');
+                    await loadFromStorage();
                     userDashboard.init();
                     if (typeof init === 'function') {
-                        init();
+                        await init();
                     }
-                } else {
-                    console.log('No user session, showing login form');
                 }
+                
+                // Now show UI
+                if (loginContainer) loginContainer.classList.remove('loading');
+                await authManager.updateUI();
             } catch (err) {
                 console.error('Initialization error:', err);
+                // Show login even on error
+                if (loginContainer) loginContainer.classList.remove('loading');
+                await authManager.updateUI();
             }
         });
     </script>
@@ -1841,23 +1857,36 @@
                     }
 
                     if (invoiceList && invoiceList.length > 0) {
-                        invoices = invoiceList.map(inv => ({
-                            id: inv.id,
-                            invoice_number: inv.invoice_number,
-                            client_name: inv.client_name,
-                            total_amount: inv.total_amount,
-                            status: inv.status,
-                            invoice_data: inv.invoice_data,
-                            created_at: inv.created_at
-                        }));
+                        invoices = invoiceList.map(inv => {
+                            const data = inv.invoice_data || {};
+                            return {
+                                id: inv.id,
+                                number: inv.invoice_number,
+                                invoice_number: inv.invoice_number,
+                                date: data.date || inv.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+                                client: { name: data.client_name || inv.client_name || 'N/A' },
+                                items: data.items || [],
+                                totalTTC: inv.total_amount || data.totalTTC || 0,
+                                company: data.company || {},
+                                fees: data.fees || {},
+                                meta: data.meta || {},
+                                status: inv.status || 'draft',
+                                created_at: inv.created_at
+                            };
+                        });
                     }
                 }
 
                 // Also load from localStorage as fallback
                 const p = localStorage.getItem(STORAGE_KEY_PRODUCTS);
                 const i = localStorage.getItem(STORAGE_KEY_INVOICES);
-                if (p && products.length === 0) products = JSON.parse(p);
-                if (i && invoices.length === 0) invoices = JSON.parse(i);
+                // Safe parse: guard against corrupt/undefined strings
+                if (p && p !== 'undefined' && p !== 'null' && products.length === 0) {
+                    try { products = JSON.parse(p); } catch(e) { console.warn('Bad products JSON in localStorage, ignoring.'); }
+                }
+                if (i && i !== 'undefined' && i !== 'null' && invoices.length === 0) {
+                    try { invoices = JSON.parse(i); } catch(e) { console.warn('Bad invoices JSON in localStorage, ignoring.'); }
+                }
             } catch (e) {
                 console.warn('Load error:', e);
             }
@@ -2003,6 +2032,9 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
                 return;
             }
 
+            const saveBtn = document.querySelector('#add-item-modal .btn-success');
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Ajout...'; }
+
             try {
                 // Parse colors
                 const colors = colorsStr ? colorsStr.split(',').map(c => c.trim()).filter(c => c) : [];
@@ -2011,25 +2043,24 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
 
                 // Upload image if selected
                 if (selectedImageFile) {
-                    const userId = authManager.getCurrentUser().id;
-                    const fileName = `${userId}/${Date.now()}_${selectedImageFile.name}`;
-
-                    const { error: uploadError } = await supabaseClient.storage
-                        .from('product_images')
-                        .upload(fileName, selectedImageFile);
-
-                    if (uploadError) {
-                        console.warn('Image upload failed, continuing without image:', uploadError);
-                    } else {
-                        // Get public URL
-                        const { data } = supabaseClient.storage
+                    const userId = authManager.getCurrentUser()?.id;
+                    if (userId) {
+                        const fileName = `${userId}/${Date.now()}_${selectedImageFile.name}`;
+                        const { error: uploadError } = await supabaseClient.storage
                             .from('product_images')
-                            .getPublicUrl(fileName);
-                        imageUrl = data.publicUrl;
+                            .upload(fileName, selectedImageFile);
+                        if (uploadError) {
+                            console.warn('Image upload failed, continuing without image:', uploadError);
+                        } else {
+                            const { data } = supabaseClient.storage
+                                .from('product_images')
+                                .getPublicUrl(fileName);
+                            imageUrl = data.publicUrl;
+                        }
                     }
                 }
 
-                // Create new product object
+                // Create new product object with a temporary local ID
                 const newProduct = {
                     id: 'MANUAL-' + Date.now(),
                     name,
@@ -2040,23 +2071,32 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
                     image: imageUrl
                 };
 
-                // Add to products array
+                // Save to Supabase and retrieve the generated UUID
+                const userId = authManager.getCurrentUser()?.id;
+                if (userId) {
+                    const { data: inserted, error } = await supabaseClient
+                        .from('user_stocks')
+                        .insert({
+                            user_id: userId,
+                            name: newProduct.name,
+                            category: newProduct.category,
+                            price: newProduct.price,
+                            stock: newProduct.stock,
+                            colors: newProduct.colors,
+                            image: newProduct.image
+                        })
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+
+                    // Use the Supabase-generated UUID so future updates/deletes target the right row
+                    if (inserted && inserted.id) newProduct.id = inserted.id;
+                }
+
+                // Add to products array with the real ID
                 products.push(newProduct);
-
-                // Save to Supabase
-                const { error } = await supabaseClient
-                    .from('user_stocks')
-                    .insert({
-                        user_id: authManager.getCurrentUser().id,
-                        name: newProduct.name,
-                        category: newProduct.category,
-                        price: newProduct.price,
-                        stock: newProduct.stock,
-                        colors: newProduct.colors,
-                        image: newProduct.image
-                    });
-
-                if (error) throw error;
+                saveToStorage();
 
                 // Refresh the stock display
                 renderStockTable();
@@ -2067,6 +2107,8 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             } catch (error) {
                 console.error('Error saving item:', error);
                 showToast('❌ Erreur lors de l\'ajout du produit: ' + error.message, 'error');
+            } finally {
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Ajouter Produit'; }
             }
         }
 
@@ -2157,7 +2199,7 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
                 const img = (get(["image", "Image", "url", "URL", "photo", "Photo"]) || "").toString().trim();
 
                 const existing = products.find(p => p.id === id);
-                const pObj = { id, name, category: cat, price, stock, colors: colorArr, image: img };
+                const pObj = { id, name, category: cat, price, stock, colors: colorArr, image: img, _needsSync: true };
 
                 if (existing) {
                     Object.assign(existing, pObj);
@@ -2169,6 +2211,32 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
 
             saveToStorage();
             renderStockTable();
+
+            // Sync newly imported products to Supabase (insert new, skip existing by id)
+            const userId = authManager.getCurrentUser()?.id;
+            if (userId && successCount > 0) {
+                try {
+                    // Only sync products that don't yet have a Supabase UUID (local import)
+                    const toSync = products.filter(p => p._needsSync);
+                    // Use upsert to avoid duplicates on re-import of same id
+                    if (toSync.length > 0) {
+                        await supabaseClient.from('user_stocks').upsert(
+                            toSync.map(p => ({
+                                ...(p.id && !p.id.startsWith('MANUAL-') ? { id: p.id } : {}),
+                                user_id: userId,
+                                name: p.name,
+                                category: p.category,
+                                price: p.price,
+                                stock: p.stock,
+                                colors: p.colors,
+                                image: p.image || null
+                            }))
+                        );
+                        // Remove sync flag
+                        products.forEach(p => delete p._needsSync);
+                    }
+                } catch(e) { console.warn('Supabase import sync failed:', e); }
+            }
 
             let msg = `${successCount} produits importés avec succès !`;
             if (failCount > 0) msg += ` (${failCount} lignes ignorées)`;
@@ -2258,23 +2326,37 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             }
         }
 
-        function updateStock(id, val) {
+        async function updateStock(id, val) {
             const p = products.find(x => x.id === id);
             if (p) {
                 p.stock = parseInt(val) || 0;
                 saveToStorage();
+                // Sync to Supabase
+                const userId = authManager.getCurrentUser()?.id;
+                if (userId) {
+                    try {
+                        await supabaseClient.from('user_stocks').update({ stock: p.stock }).eq('id', id);
+                    } catch(e) { console.warn('Supabase stock update failed:', e); }
+                }
             }
         }
 
-        function deleteProduct(id) {
+        async function deleteProduct(id) {
             if (!confirm("Supprimer ce produit ?")) return;
             products = products.filter(x => x.id !== id);
             saveToStorage();
             renderStockTable(document.getElementById('search-bar').value);
             showToast('Produit supprimé.', 'info');
+            // Sync to Supabase
+            const userId = authManager.getCurrentUser()?.id;
+            if (userId) {
+                try {
+                    await supabaseClient.from('user_stocks').delete().eq('id', id);
+                } catch(e) { console.warn('Supabase product delete failed:', e); }
+            }
         }
 
-        function emptyStock() {
+        async function emptyStock() {
             const checkedBoxes = document.querySelectorAll('.select-item:checked');
             if (checkedBoxes.length === 0) return showToast('Sélectionnez d\'abord des items (cocher les cases).', 'error');
             if (!confirm(`Supprimer ${checkedBoxes.length} items ?`)) return;
@@ -2284,6 +2366,13 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             saveToStorage();
             renderStockTable(document.getElementById('search-bar').value);
             showToast(`${idsToDelete.length} produit(s) supprimé(s).`, 'success');
+            // Sync deletions to Supabase
+            const userId = authManager.getCurrentUser()?.id;
+            if (userId) {
+                try {
+                    await supabaseClient.from('user_stocks').delete().in('id', idsToDelete);
+                } catch(e) { console.warn('Supabase bulk delete failed:', e); }
+            }
         }
 
         // =============================================
@@ -2492,8 +2581,17 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
         // =============================================
         // VALIDATE & SAVE INVOICE
         // =============================================
-        function validateInvoice() {
+        async function validateInvoice() {
             if (currentInvoice.length === 0) return showToast("La facture est vide !", 'error');
+
+            // Double-click guard: disable button while processing
+            const validateBtn = document.querySelector('.action-bar .btn-success');
+            if (validateBtn) {
+                if (validateBtn.disabled) return; // already processing
+                validateBtn.disabled = true;
+                validateBtn.textContent = '⏳ Traitement...';
+            }
+
             if (!document.getElementById('invoice-id').value) {
                 const newId = "FAC-" + Date.now();
                 document.getElementById('invoice-id').value = newId;
@@ -2568,10 +2666,58 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             }
 
             // Deduct new stock
+            const stockUpdates = [];
             invData.items.forEach(newItem => {
                 const p = products.find(x => x.id === newItem.id);
-                if (p) p.stock -= newItem.quantity;
+                if (p) {
+                    p.stock -= newItem.quantity;
+                    stockUpdates.push({ id: p.id, stock: p.stock });
+                }
             });
+
+            // Save invoice + stock changes to Supabase
+            const userId = authManager.getCurrentUser()?.id;
+            if (userId) {
+                try {
+                    // Persist updated stock quantities to Supabase
+                    await Promise.all(stockUpdates.map(({ id, stock }) =>
+                        supabaseClient.from('user_stocks').update({ stock }).eq('id', id)
+                    ));
+
+                    if (editMode && editingInvoiceIndex !== -1) {
+                        const invId = invoices[editingInvoiceIndex].id;
+                        const { error } = await supabaseClient
+                            .from('user_invoices')
+                            .update({
+                                invoice_number: invData.number,
+                                client_name: invData.client?.name || '',
+                                total_amount: invData.totalTTC,
+                                invoice_data: invData,
+                                status: 'draft'
+                            })
+                            .eq('id', invId);
+                        if (error) throw error;
+                    } else {
+                        const { data: savedInv, error } = await supabaseClient
+                            .from('user_invoices')
+                            .insert({
+                                user_id: userId,
+                                invoice_number: invData.number,
+                                client_name: invData.client?.name || '',
+                                total_amount: invData.totalTTC,
+                                invoice_data: invData,
+                                status: 'draft'
+                            })
+                            .select().single();
+                        if (error) throw error;
+                        // Store Supabase UUID so future edits/deletes target the right row
+                        if (savedInv) invData.id = savedInv.id;
+                    }
+                } catch (err) {
+                    console.error('Failed to save invoice to Supabase:', err);
+                    showToast('⚠️ Facture sauvegardée localement (sync offline).', 'info');
+                }
+            }
 
             // Save invoice
             if (editMode && editingInvoiceIndex !== -1) {
@@ -2605,6 +2751,12 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
 
             renderInvoiceHistory();
             showToast('Facture sauvegardée avec succès ! ✅', 'success');
+
+            // Re-enable the validate button
+            if (validateBtn) {
+                validateBtn.disabled = false;
+                validateBtn.textContent = '✅ Valider & Sauvegarder';
+            }
         }
 
         // =============================================
@@ -2653,25 +2805,54 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             });
         }
 
-        function cancelInvoice(num) {
+        async function cancelInvoice(num) {
             const idx = invoices.findIndex(i => i.number === num);
             if (idx === -1) return;
             if (!confirm("Annuler cette facture ? Le stock sera restauré.")) return;
 
             const inv = invoices[idx];
+            
+            // Delete from Supabase
+            const userId = authManager.getCurrentUser()?.id;
+            if (userId && inv.id) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('user_invoices')
+                        .delete()
+                        .eq('id', inv.id);
+                    if (error) throw error;
+                } catch (err) {
+                    console.error('Failed to delete invoice:', err);
+                }
+            }
+            
+            const restoredStocks = [];
             inv.items.forEach(item => {
                 const p = products.find(x => x.id === item.id);
-                if (p) p.stock += item.quantity;
+                if (p) {
+                    p.stock += item.quantity;
+                    restoredStocks.push({ id: p.id, stock: p.stock });
+                }
             });
             invoices.splice(idx, 1);
             saveToStorage();
+
+            // Sync restored stock levels to Supabase
+            if (userId) {
+                try {
+                    await Promise.all(restoredStocks.map(({ id, stock }) =>
+                        supabaseClient.from('user_stocks').update({ stock }).eq('id', id)
+                    ));
+                } catch(e) { console.warn('Supabase stock restore failed:', e); }
+            }
+
             renderStockTable(document.getElementById('search-bar').value);
             renderInvoiceHistory();
             showToast('Facture annulée, stock restauré.', 'info');
         }
 
         function editInvoice(num) {
-            const inv = invoices.find(i => i.number === num);
+            const inv = invoices.find(i => i.number === num || i.invoice_number === num);
             if (!inv) return;
 
             editMode = true;
@@ -2737,7 +2918,7 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
         // PRINT INVOICE
         // =============================================
         function printInvoice(num) {
-            const inv = invoices.find(i => i.number === num);
+            const inv = invoices.find(i => i.number === num || i.invoice_number === num);
             if (!inv) return;
 
             const fmt = (n) => (n || 0).toFixed(3);
@@ -2938,9 +3119,6 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
 
             console.log("✅ StockInvoice Pro ready!");
         }
-
-        // Start
-        init();
 
         // Aggressively save data when app is about to close or go to background
         // This prevents data loss in Chrome PWA mode
