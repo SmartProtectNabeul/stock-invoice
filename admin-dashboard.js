@@ -146,25 +146,6 @@ class AdminDashboard {
   }
 
   // Send approval email via Supabase
-  async sendApprovalEmail(email, userId) {
-    try {
-      // Call Supabase function or send via email service
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/send-approval-email`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, userId }),
-      });
-
-      if (!response.ok) {
-        console.warn('Email service unavailable, but user was approved');
-      }
-    } catch (error) {
-      console.warn('Could not send email:', error);
-    }
-  }
 
   // Render pending users table
   renderPendingUsers() {
