@@ -1431,14 +1431,27 @@
         async function handleLogout() {
             if (confirm('Are you sure you want to logout?')) {
                 try {
-                    const result = await authManager.signout();
-                    // Wait a moment for Supabase to fully clear the session
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    // Force hard refresh to clear all cache
-                    window.location.href = 'index.html?t=' + Date.now();
+                    // Clear form fields first
+                    document.getElementById('login-email').value = '';
+                    document.getElementById('login-password').value = '';
+                    if (document.getElementById('signup-email')) {
+                        document.getElementById('signup-email').value = '';
+                        document.getElementById('signup-password').value = '';
+                        document.getElementById('signup-key').value = '';
+                    }
+                    
+                    // Logout from Supabase
+                    await authManager.signout();
+                    
+                    // Wait for session to fully clear
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Force complete page reload to clear all state
+                    window.location.reload(true);
                 } catch (err) {
                     console.error('Logout error:', err);
-                    window.location.href = 'index.html?t=' + Date.now();
+                    // Force reload anyway
+                    window.location.reload(true);
                 }
             }
         }

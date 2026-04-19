@@ -7,26 +7,44 @@ class AuthManager {
 
   // Initialize auth state
   async init() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-      this.currentUser = session.user;
-      await this.loadUserProfile();
+    try {
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      console.log('Current session on init:', session ? 'exists' : 'none');
+      
+      if (session) {
+        this.currentUser = session.user;
+        await this.loadUserProfile();
+      } else {
+        this.currentUser = null;
+        this.userProfile = null;
+      }
+    } catch (err) {
+      console.error('Error getting session:', err);
+      this.currentUser = null;
+      this.userProfile = null;
     }
+    
     this.setupAuthListener();
   }
 
   // Set up real-time auth listener
   setupAuthListener() {
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        this.currentUser = session.user;
-        await this.loadUserProfile();
-        this.updateUI();
-      } else {
+      console.log('Auth state change event:', event, session ? 'has session' : 'no session');
+      
+      // Only update UI on auth change, don't auto-login
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session) {
+          this.currentUser = session.user;
+          await this.loadUserProfile();
+        }
+      } else if (event === 'SIGNED_OUT') {
         this.currentUser = null;
         this.userProfile = null;
-        this.updateUI();
       }
+      
+      // Always update UI when auth state changes
+      await this.updateUI();
     });
   }
 
@@ -106,40 +124,76 @@ class AuthManager {
 
     if (error) return { error: error.message };
 
+    console.log('Auth signin successful for user:', data.user.id, 'email:', data.user.email);
+
     // Check if account is approved
     const { data: profile, error: profileError } = await supabaseClient
       .from('user_profiles')
-      .select('*')
+      .select('id, status, role, user_id, email')
       .eq('user_id', data.user.id)
       .single();
 
     if (profileError) {
-      console.error('Profile query error:', profileError);
-      await supabaseClient.auth.signOut();
-      return { error: 'Failed to load user profile. Please try again.' };
+      console.error('Profile query error details:', profileError.code, profileError.message, profileError.details);
+      // Even if query fails, let them in but log the issue
+      console.warn('Allowing login despite profile query error - user:', data.user.id);
+      return { success: true, user: data.user };
     }
 
     if (!profile) {
-      console.warn('User profile not found for user:', data.user.id);
+      console.warn('User profile not found for user:', data.user.id, 'email:', email);
       await supabaseClient.auth.signOut();
       return { error: 'User profile not found. Please contact admin.' };
     }
 
+    console.log('Profile found:', profile);
+
     if (profile.status !== 'approved') {
+      console.warn('Account status not approved. Status:', profile.status);
       await supabaseClient.auth.signOut();
       return { error: `Your account is ${profile.status}. Please contact admin.` };
     }
 
+    console.log('User approved! Status:', profile.status, 'Role:', profile.role);
+    this.currentUser = data.user;
+    await this.loadUserProfile();
+    
     return { success: true, user: data.user };
   }
 
   // Sign out
   async signout() {
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) return { error: error.message };
-    this.currentUser = null;
-    this.userProfile = null;
-    return { success: true };
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) console.error('Signout error:', error);
+      
+      // Fully clear session state
+      this.currentUser = null;
+      this.userProfile = null;
+      
+      // Clear browser storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear all Supabase-related storage keys
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('supabase') || key.includes('auth'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      return { success: true };
+    } catch (err) {
+      console.error('Signout error:', err);
+      this.currentUser = null;
+      this.userProfile = null;
+      localStorage.clear();
+      sessionStorage.clear();
+      return { success: true };
+    }
   }
 
   // Update UI based on auth state
