@@ -127,21 +127,29 @@ class AuthManager {
   }
 
   // Update UI based on auth state
-  updateUI() {
+  async updateUI() {
     const loginContainer = document.getElementById('login-container');
     const appContainer = document.getElementById('app-container');
-    const userMenuBtn = document.getElementById('user-menu-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const adminBtn = document.getElementById('admin-btn');
     const userEmailSpan = document.getElementById('user-email');
 
     if (this.currentUser) {
       if (loginContainer) loginContainer.style.display = 'none';
       if (appContainer) appContainer.style.display = 'block';
       if (userEmailSpan) userEmailSpan.textContent = this.currentUser.email;
-      if (userMenuBtn) userMenuBtn.style.display = 'flex';
+      if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+      
+      // Check if admin and show admin button
+      const isAdmin = await this.isAdmin();
+      if (adminBtn) {
+        adminBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+      }
     } else {
       if (loginContainer) loginContainer.style.display = 'flex';
       if (appContainer) appContainer.style.display = 'none';
-      if (userMenuBtn) userMenuBtn.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      if (adminBtn) adminBtn.style.display = 'none';
     }
   }
 

@@ -96,26 +96,73 @@ CREATE INDEX idx_user_invoices_user_id ON user_invoices(user_id);
 CREATE INDEX idx_user_invoices_number ON user_invoices(invoice_number);
 ```
 
-## Step 4: Set Up Email Notifications (Optional)
+## Step 4: Configure Authentication URLs (CRITICAL)
 
-In Supabase SQL Editor, create a function to send approval emails:
+**This step is REQUIRED for email verification to work!**
 
-```sql
-CREATE OR REPLACE FUNCTION notify_user_approved(user_email TEXT)
-RETURNS void AS $$
-BEGIN
-  -- This would integrate with your email service
-  -- For now, it just logs the approval
-  INSERT INTO logs (message, created_at) VALUES ('User approved: ' || user_email, now());
-END;
-$$ LANGUAGE plpgsql;
-```
+1. **Go to Supabase project → Settings → Authentication**
+
+2. **Update Site URL:**
+   - Find the **"Site URL"** field
+   - Change from `http://localhost:3000` to:
+     ```
+     https://smartprotectnabeul.github.io/stock-invoice/
+     ```
+
+3. **Add Redirect URLs** (click "Add redirect URL" for each):
+   ```
+   https://smartprotectnabeul.github.io/stock-invoice/
+   https://smartprotectnabeul.github.io/stock-invoice/index.html
+   https://smartprotectnabeul.github.io/stock-invoice/admin.html
+   ```
+   
+   **Local testing (if needed):**
+   ```
+   http://localhost/stock-invoice/
+   http://localhost/stock-invoice/index.html
+   ```
+
+4. **Click "Save"**
+
+---
+
+## Step 5: Email Notifications (Optional)
+
+Email notifications are **optional** and work automatically when a user is approved.
+
+### Option 1: Use Supabase Built-in Email (Recommended)
+1. Go to Settings → Email Templates
+2. Verify "Confirm signup" is enabled
+3. Users will receive verification emails automatically
+
+### Option 2: Use SendGrid (For production)
+1. Get SendGrid API key from https://sendgrid.com
+2. Go to Settings → Email Configuration
+3. Select "SendGrid" and paste your API key
+
+### Option 3: Skip emails
+Users can still signup - just no email notifications.
+
+**Note:** After Step 4 is done, email links will work properly!
 
 ## Step 5: Enable Row Level Security (RLS)
+
+### Activation Keys RLS (IMPORTANT - Do this first!)
+```sql
+ALTER TABLE activation_keys ENABLE ROW LEVEL SECURITY;
+
+-- Allow anyone (including unauthenticated users) to check if a key is valid
+CREATE POLICY "Anyone can check unused keys" ON activation_keys
+  FOR SELECT USING (is_used = false);
+```
 
 ### User Profiles RLS
 ```sql
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Allow users to insert their own profile during signup
+CREATE POLICY "Users can insert own profile" ON user_profiles
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can view own profile" ON user_profiles
   FOR SELECT USING (auth.uid() = user_id);

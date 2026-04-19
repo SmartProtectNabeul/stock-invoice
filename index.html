@@ -1101,7 +1101,8 @@
         <div class="toolbar-spacer"></div>
         <div style="display: flex; align-items: center; gap: 12px; justify-content: flex-end;">
             <span id="user-email" style="font-size: 12px; color: var(--text-secondary);"></span>
-            <button class="btn btn-ghost" onclick="logout()" id="logout-btn" style="display: none;">🚪 Logout</button>
+            <button class="btn btn-info btn-sm" onclick="goToAdmin()" id="admin-btn" style="display: none;" title="Go to Admin Dashboard">⚙️ Admin</button>
+            <button class="btn btn-danger btn-sm" onclick="handleLogout()" id="logout-btn" style="display: none;">🚪 Logout</button>
         </div>
     </header>
 
@@ -1427,12 +1428,18 @@
             }
         }
 
-        async function logout() {
-            const result = await authManager.signout();
-            if (!result.error) {
-                authManager.updateUI();
-                location.reload();
+        async function handleLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                const result = await authManager.signout();
+                if (!result.error) {
+                    await authManager.updateUI();
+                    window.location.href = 'index.html';
+                }
             }
+        }
+
+        function goToAdmin() {
+            window.location.href = 'admin.html';
         }
 
         // =============================================
@@ -1440,19 +1447,12 @@
         // =============================================
         window.addEventListener('DOMContentLoaded', async () => {
             await authManager.init();
+            await authManager.updateUI();
             
             // If user is logged in, initialize the app
             if (authManager.getCurrentUser()) {
                 userDashboard.init();
                 init();
-            }
-        });
-
-        // Logout button visibility
-        document.addEventListener('DOMContentLoaded', () => {
-            const logoutBtn = document.getElementById('logout-btn');
-            if (logoutBtn) {
-                logoutBtn.style.display = 'none';
             }
         });
     </script>
