@@ -81,19 +81,12 @@ class AdminDashboard {
 
       if (updateError) throw updateError;
 
-      // Get user email
-      const user = this.pendingUsers.find(u => u.user_id === userId);
-      if (user) {
-        // Send welcome email
-        await this.sendApprovalEmail(user.email, user.user_id);
-      }
-
       // Reload pending users
       await this.loadPendingUsers();
-      this.showNotification('User approved and email sent', 'success');
+      this.showNotification('✅ User approved successfully!', 'success');
     } catch (error) {
       console.error('Error approving user:', error);
-      this.showNotification('Failed to approve user', 'error');
+      this.showNotification('❌ Failed to approve user: ' + error.message, 'error');
     }
   }
 
