@@ -1,3 +1,14 @@
+// EmailJS Configuration
+const EMAILJS_SERVICE_ID = 'service_v4jfvxw';
+const EMAILJS_TEMPLATE_ID = 'template_ci6bo58';
+const EMAILJS_PUBLIC_KEY = 'cQJtlQe-nDvVjCF20';
+const ADMIN_EMAIL = 'ahmedmmidonajjar@gmail.com';
+
+// Initialize EmailJS
+if (typeof emailjs !== 'undefined') {
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+}
+
 // Authentication Module
 class AuthManager {
   constructor() {
@@ -65,6 +76,33 @@ class AuthManager {
     }
   }
 
+  // Send signup notification email to admin
+  async sendSignupNotification(email) {
+    try {
+      if (typeof emailjs === 'undefined') {
+        console.warn('EmailJS not loaded, skipping email notification');
+        return;
+      }
+
+      const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        user_email: email,
+        signup_date: new Date().toLocaleDateString('fr-FR', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        to_email: ADMIN_EMAIL
+      });
+
+      console.log('✅ Signup notification sent to admin:', response);
+    } catch (error) {
+      console.error('⚠️ Failed to send signup notification:', error);
+      // Don't fail signup if email fails
+    }
+  }
+
   // Sign up with activation key
   async signup(email, password, activationKey) {
     try {
@@ -104,6 +142,9 @@ class AuthManager {
         .from('activation_keys')
         .update({ is_used: true, used_by: data.user.id })
         .eq('id', keyData.id);
+
+      // Send signup notification to admin (async, don't wait)
+      this.sendSignupNotification(email);
 
       return { success: true, user: data.user };
     } catch (error) {

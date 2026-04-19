@@ -1008,6 +1008,86 @@
             display: none;
         }
 
+        /* ============================================
+           MODAL
+           ============================================ */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: transparent;
+            z-index: 999;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .form-grid .form-group:last-child {
+            grid-column: 1 / -1;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all var(--transition-fast);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
     </style>
 </head>
 
@@ -1123,6 +1203,7 @@
 
         <div class="toolbar-group">
             <button class="btn btn-success" onclick="exportCSV()" id="btn-export">⬇️ Exporter CSV</button>
+            <button class="btn btn-primary" onclick="openAddItemModal()" id="btn-add-item">➕ Ajouter Produit</button>
             <button class="btn btn-danger" onclick="emptyStock()" id="btn-empty" title="Supprimer les sélectionnés">🗑️ Supprimer</button>
         </div>
 
@@ -1326,11 +1407,64 @@
             </div>
         </div>
     </div>
+
+    <!-- ADD ITEM MODAL -->
+    <div id="add-item-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="margin:0;">➕ Ajouter un Produit</h3>
+                <button class="btn btn-sm" style="background:transparent; border:none; cursor:pointer; font-size:20px;" onclick="closeAddItemModal()">✕</button>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Nom du Produit *</label>
+                    <input type="text" id="new-item-name" class="form-input" placeholder="Ex: T-Shirt Blanc" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Catégorie</label>
+                    <input type="text" id="new-item-category" class="form-input" placeholder="Ex: Vêtements">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Prix (DA) *</label>
+                    <input type="number" id="new-item-price" class="form-input" placeholder="0.00" step="0.01" min="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Quantité en Stock *</label>
+                    <input type="number" id="new-item-stock" class="form-input" placeholder="0" min="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Couleurs (séparées par virgule)</label>
+                    <input type="text" id="new-item-colors" class="form-input" placeholder="Ex: Blanc, Noir, Bleu">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">URL Image</label>
+                    <input type="text" id="new-item-image" class="form-input" placeholder="https://exemple.com/image.jpg">
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+                <button class="btn" style="background:var(--bg-elevated); border:1px solid var(--border-color);" onclick="closeAddItemModal()">Annuler</button>
+                <button class="btn btn-success" onclick="saveNewItem()">💾 Ajouter Produit</button>
+            </div>
+        </div>
     </div>
 
-    <!-- EXTERNAL LIBS -->
+    <!-- Modal Overlay -->
+    <div id="modal-overlay" class="modal-overlay" style="display:none;" onclick="closeAddItemModal()"></div>
+
+    </div>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- EmailJS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/index.min.js"></script>
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1595,6 +1729,97 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             a.click();
             URL.revokeObjectURL(a.href);
             showToast('Modèle CSV téléchargé ! Remplissez-le puis importez-le.', 'success');
+        }
+
+        // =============================================
+        // ADD ITEM MANUALLY - MODAL FUNCTIONS
+        // =============================================
+        function openAddItemModal() {
+            document.getElementById('add-item-modal').style.display = 'flex';
+            document.getElementById('modal-overlay').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAddItemModal() {
+            document.getElementById('add-item-modal').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            
+            // Clear form
+            document.getElementById('new-item-name').value = '';
+            document.getElementById('new-item-category').value = '';
+            document.getElementById('new-item-price').value = '';
+            document.getElementById('new-item-stock').value = '';
+            document.getElementById('new-item-colors').value = '';
+            document.getElementById('new-item-image').value = '';
+        }
+
+        async function saveNewItem() {
+            const name = document.getElementById('new-item-name').value.trim();
+            const category = document.getElementById('new-item-category').value.trim();
+            const price = parseFloat(document.getElementById('new-item-price').value);
+            const stock = parseInt(document.getElementById('new-item-stock').value);
+            const colorsStr = document.getElementById('new-item-colors').value.trim();
+            const imageUrl = document.getElementById('new-item-image').value.trim();
+
+            // Validation
+            if (!name) {
+                showToast('❌ Le nom du produit est obligatoire!', 'error');
+                return;
+            }
+            if (isNaN(price) || price < 0) {
+                showToast('❌ Prix invalide!', 'error');
+                return;
+            }
+            if (isNaN(stock) || stock < 0) {
+                showToast('❌ Quantité invalide!', 'error');
+                return;
+            }
+
+            try {
+                // Parse colors
+                const colors = colorsStr ? colorsStr.split(',').map(c => c.trim()).filter(c => c) : [];
+
+                // Create new product object
+                const newProduct = {
+                    id: 'MANUAL-' + Date.now(),
+                    name,
+                    category: category || 'Non catégorisé',
+                    price: Number(price.toFixed(3)),
+                    stock: stock,
+                    colors: colors,
+                    image: imageUrl || null
+                };
+
+                // Add to products array
+                products.push(newProduct);
+
+                // Save to Supabase
+                const { error } = await supabaseClient
+                    .from('user_stocks')
+                    .insert({
+                        user_id: authManager.getCurrentUser().id,
+                        name: newProduct.name,
+                        category: newProduct.category,
+                        price: newProduct.price,
+                        stock: newProduct.stock,
+                        colors: newProduct.colors,
+                        image: newProduct.image
+                    });
+
+                if (error) throw error;
+
+                // Refresh the stock display
+                renderStockTable();
+                updateStockCount();
+
+                // Close modal and show success
+                closeAddItemModal();
+                showToast(`✅ Produit "${name}" ajouté avec succès!`, 'success');
+            } catch (error) {
+                console.error('Error saving item:', error);
+                showToast('❌ Erreur lors de l\'ajout du produit: ' + error.message, 'error');
+            }
         }
 
         // =============================================
