@@ -377,6 +377,7 @@
         <div class="admin-logo">⚙️ Admin Dashboard</div>
         <div class="user-menu">
             <span id="admin-email" style="font-size: 13px; color: var(--text-secondary);"></span>
+            <button class="btn btn-info btn-sm" onclick="goToApp()" title="Back to app">📦 Back to App</button>
             <button class="btn btn-danger btn-sm" onclick="logout()">🚪 Logout</button>
         </div>
     </header>
@@ -630,6 +631,11 @@
             };
             localStorage.setItem('admin_settings', JSON.stringify(settings));
             showNotification('Settings saved', 'success');
+        }
+
+        // Go back to app
+        function goToApp() {
+            window.location.href = 'index.html';
         }
 
         // Logout

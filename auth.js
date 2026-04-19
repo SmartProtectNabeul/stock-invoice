@@ -73,6 +73,16 @@ class AuthManager {
       console.error('Error loading profile:', error);
     } else {
       this.userProfile = data;
+      
+      // Check if user is suspended - kick them out
+      if (data && data.status === 'suspended') {
+        console.warn('User is suspended, signing out:', data.email);
+        await supabaseClient.auth.signOut();
+        this.currentUser = null;
+        this.userProfile = null;
+        await this.updateUI();
+        alert('Your account has been suspended. Please contact admin.');
+      }
     }
   }
 

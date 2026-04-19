@@ -1009,6 +1009,169 @@
         }
 
         /* ============================================
+           MOBILE RESPONSIVENESS
+           ============================================ */
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-header {
+                padding: 0 12px;
+                height: auto;
+                flex-wrap: wrap;
+            }
+
+            .app-logo-text {
+                display: none;
+            }
+
+            .tab-btns {
+                order: 3;
+                width: 100%;
+                flex-wrap: wrap;
+                margin-top: 8px;
+            }
+
+            .tab-btn {
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+
+            .toolbar {
+                padding: 8px 12px;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .toolbar-group {
+                gap: 4px;
+            }
+
+            .btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .btn-lg {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .input-search {
+                width: 140px;
+            }
+
+            .toolbar-separator {
+                display: none;
+            }
+
+            .main-layout {
+                padding: 8px 12px;
+                gap: 8px;
+            }
+
+            .panel-header {
+                padding: 12px;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .panel-header h2 {
+                font-size: 14px;
+            }
+
+            .data-table th {
+                padding: 8px 4px;
+                font-size: 10px;
+            }
+
+            .data-table td {
+                padding: 6px 4px;
+                font-size: 11px;
+            }
+
+            .field-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .totals-section {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .total-box {
+                width: 100%;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 16px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-header {
+                padding: 8px;
+            }
+
+            .app-logo-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
+            }
+
+            .app-logo-sub {
+                display: none;
+            }
+
+            .toolbar {
+                padding: 6px;
+            }
+
+            .btn {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+
+            .input {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+
+            .data-table {
+                font-size: 10px;
+            }
+
+            .data-table th {
+                padding: 4px 2px;
+                font-size: 9px;
+            }
+
+            .data-table td {
+                padding: 4px 2px;
+                font-size: 10px;
+            }
+
+            .auth-card {
+                width: 95%;
+                padding: 16px;
+            }
+
+            .modal-content {
+                width: 98%;
+                padding: 12px;
+            }
+        }
+
+        /* ============================================
            MODAL
            ============================================ */
         .modal {
