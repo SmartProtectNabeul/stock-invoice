@@ -1318,9 +1318,6 @@
             </div>
         </div>
 
-        <div style="text-align: center; font-size: 12px; color: var(--text-muted);">
-            Admin? <a href="admin.html" style="color: var(--accent-primary); text-decoration: none;">Go to Admin Panel</a>
-        </div>
     </div>
 
     <!-- APP CONTAINER (hidden by default) -->
@@ -1677,9 +1674,12 @@
             } else {
                 msgEl.classList.add('success');
                 msgEl.textContent = 'Login successful! Redirecting...';
-                setTimeout(() => {
+                setTimeout(async () => {
                     authManager.updateUI();
+                    await loadFromStorage();
                     userDashboard.init();
+                    renderStockTable();
+                    renderInvoiceHistory();
                     document.getElementById('login-email').value = '';
                     document.getElementById('login-password').value = '';
                 }, 500);
@@ -1813,14 +1813,53 @@
             }
         }
 
-        function loadFromStorage() {
+        async function loadFromStorage() {
             try {
+                // First try to load from Supabase (for multi-device support)
+                const userId = authManager.getCurrentUser()?.id;
+                if (userId) {
+                    const { data: stocks } = await supabaseClient
+                        .from('user_stocks')
+                        .select('*')
+                        .eq('user_id', userId);
+
+                    const { data: invoiceList } = await supabaseClient
+                        .from('user_invoices')
+                        .select('*')
+                        .eq('user_id', userId);
+
+                    if (stocks && stocks.length > 0) {
+                        products = stocks.map(s => ({
+                            id: s.id,
+                            name: s.name,
+                            category: s.category,
+                            price: s.price,
+                            stock: s.stock,
+                            colors: Array.isArray(s.colors) ? s.colors : (s.colors ? s.colors.split(',') : []),
+                            image: s.image
+                        }));
+                    }
+
+                    if (invoiceList && invoiceList.length > 0) {
+                        invoices = invoiceList.map(inv => ({
+                            id: inv.id,
+                            invoice_number: inv.invoice_number,
+                            client_name: inv.client_name,
+                            total_amount: inv.total_amount,
+                            status: inv.status,
+                            invoice_data: inv.invoice_data,
+                            created_at: inv.created_at
+                        }));
+                    }
+                }
+
+                // Also load from localStorage as fallback
                 const p = localStorage.getItem(STORAGE_KEY_PRODUCTS);
                 const i = localStorage.getItem(STORAGE_KEY_INVOICES);
-                if (p) products = JSON.parse(p);
-                if (i) invoices = JSON.parse(i);
+                if (p && products.length === 0) products = JSON.parse(p);
+                if (i && invoices.length === 0) invoices = JSON.parse(i);
             } catch (e) {
-                console.warn('LocalStorage load error:', e);
+                console.warn('Load error:', e);
             }
         }
 
@@ -2021,7 +2060,6 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
 
                 // Refresh the stock display
                 renderStockTable();
-                updateStockCount();
 
                 // Close modal and show success
                 closeAddItemModal();
@@ -2866,8 +2904,8 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
         // =============================================
         // INITIALIZATION
         // =============================================
-        function init() {
-            loadFromStorage();
+        async function init() {
+            await loadFromStorage();
             renderStockTable();
             renderInvoiceHistory();
 
