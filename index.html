@@ -1443,8 +1443,14 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">URL Image</label>
-                    <input type="text" id="new-item-image" class="form-input" placeholder="https://exemple.com/image.jpg">
+                    <label class="form-label">Image du Produit</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="file" id="new-item-image" class="form-input" accept="image/*" style="flex:1; cursor:pointer;">
+                        <span id="image-preview-text" style="font-size:12px; color:var(--text-muted);">Aucune image</span>
+                    </div>
+                    <div id="image-preview-container" style="margin-top:10px; display:none;">
+                        <img id="image-preview" style="max-width:100%; max-height:120px; border-radius:8px; border:1px solid var(--border-color);">
+                    </div>
                 </div>
             </div>
             
@@ -1734,6 +1740,8 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
         // =============================================
         // ADD ITEM MANUALLY - MODAL FUNCTIONS
         // =============================================
+        let selectedImageFile = null;
+
         function openAddItemModal() {
             document.getElementById('add-item-modal').style.display = 'flex';
             document.getElementById('modal-overlay').style.display = 'block';
@@ -1752,7 +1760,25 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             document.getElementById('new-item-stock').value = '';
             document.getElementById('new-item-colors').value = '';
             document.getElementById('new-item-image').value = '';
+            document.getElementById('image-preview-text').textContent = 'Aucune image';
+            document.getElementById('image-preview-container').style.display = 'none';
+            selectedImageFile = null;
         }
+
+        // Handle image file selection
+        document.getElementById('new-item-image').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedImageFile = file;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    document.getElementById('image-preview').src = event.target.result;
+                    document.getElementById('image-preview-container').style.display = 'block';
+                    document.getElementById('image-preview-text').textContent = `📷 ${file.name}`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
 
         async function saveNewItem() {
             const name = document.getElementById('new-item-name').value.trim();
@@ -1760,7 +1786,6 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             const price = parseFloat(document.getElementById('new-item-price').value);
             const stock = parseInt(document.getElementById('new-item-stock').value);
             const colorsStr = document.getElementById('new-item-colors').value.trim();
-            const imageUrl = document.getElementById('new-item-image').value.trim();
 
             // Validation
             if (!name) {
@@ -1780,6 +1805,28 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
                 // Parse colors
                 const colors = colorsStr ? colorsStr.split(',').map(c => c.trim()).filter(c => c) : [];
 
+                let imageUrl = null;
+
+                // Upload image if selected
+                if (selectedImageFile) {
+                    const userId = authManager.getCurrentUser().id;
+                    const fileName = `${userId}/${Date.now()}_${selectedImageFile.name}`;
+
+                    const { error: uploadError } = await supabaseClient.storage
+                        .from('product_images')
+                        .upload(fileName, selectedImageFile);
+
+                    if (uploadError) {
+                        console.warn('Image upload failed, continuing without image:', uploadError);
+                    } else {
+                        // Get public URL
+                        const { data } = supabaseClient.storage
+                            .from('product_images')
+                            .getPublicUrl(fileName);
+                        imageUrl = data.publicUrl;
+                    }
+                }
+
                 // Create new product object
                 const newProduct = {
                     id: 'MANUAL-' + Date.now(),
@@ -1788,7 +1835,7 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
                     price: Number(price.toFixed(3)),
                     stock: stock,
                     colors: colors,
-                    image: imageUrl || null
+                    image: imageUrl
                 };
 
                 // Add to products array
