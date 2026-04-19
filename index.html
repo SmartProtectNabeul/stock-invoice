@@ -1430,10 +1430,15 @@
 
         async function handleLogout() {
             if (confirm('Are you sure you want to logout?')) {
-                const result = await authManager.signout();
-                if (!result.error) {
-                    await authManager.updateUI();
-                    window.location.href = 'index.html';
+                try {
+                    const result = await authManager.signout();
+                    // Wait a moment for Supabase to fully clear the session
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // Force hard refresh to clear all cache
+                    window.location.href = 'index.html?t=' + Date.now();
+                } catch (err) {
+                    console.error('Logout error:', err);
+                    window.location.href = 'index.html?t=' + Date.now();
                 }
             }
         }
@@ -1446,13 +1451,22 @@
         // INITIALIZE ON PAGE LOAD
         // =============================================
         window.addEventListener('DOMContentLoaded', async () => {
-            await authManager.init();
-            await authManager.updateUI();
-            
-            // If user is logged in, initialize the app
-            if (authManager.getCurrentUser()) {
-                userDashboard.init();
-                init();
+            try {
+                await authManager.init();
+                await authManager.updateUI();
+                
+                // If user is logged in, initialize the app
+                if (authManager.getCurrentUser()) {
+                    console.log('User is logged in, initializing app');
+                    userDashboard.init();
+                    if (typeof init === 'function') {
+                        init();
+                    }
+                } else {
+                    console.log('No user session, showing login form');
+                }
+            } catch (err) {
+                console.error('Initialization error:', err);
             }
         });
     </script>

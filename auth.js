@@ -95,6 +95,10 @@ class AuthManager {
 
   // Sign in
   async signin(email, password) {
+    // Ensure clean session state before signin
+    this.currentUser = null;
+    this.userProfile = null;
+
     const { data, error } = await supabaseClient.auth.signInWithPassword({
       email,
       password,
@@ -103,15 +107,27 @@ class AuthManager {
     if (error) return { error: error.message };
 
     // Check if account is approved
-    const { data: profile } = await supabaseClient
+    const { data: profile, error: profileError } = await supabaseClient
       .from('user_profiles')
       .select('*')
       .eq('user_id', data.user.id)
       .single();
 
-    if (profile?.status !== 'approved') {
+    if (profileError) {
+      console.error('Profile query error:', profileError);
       await supabaseClient.auth.signOut();
-      return { error: 'Your account is awaiting admin approval or has been suspended' };
+      return { error: 'Failed to load user profile. Please try again.' };
+    }
+
+    if (!profile) {
+      console.warn('User profile not found for user:', data.user.id);
+      await supabaseClient.auth.signOut();
+      return { error: 'User profile not found. Please contact admin.' };
+    }
+
+    if (profile.status !== 'approved') {
+      await supabaseClient.auth.signOut();
+      return { error: `Your account is ${profile.status}. Please contact admin.` };
     }
 
     return { success: true, user: data.user };
