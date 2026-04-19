@@ -1011,8 +1011,16 @@
             margin-top: 20px;
         }
 
+        /* Both containers hidden until JS resolves auth state.
+           This eliminates the login-page flash on refresh for logged-in users. */
         .app-container {
             display: none;
+        }
+
+        /* Hide everything until auth is resolved */
+        body:not(.auth-ready) #login-container,
+        body:not(.auth-ready) #app-container {
+            visibility: hidden;
         }
 
         /* ============================================
@@ -1271,8 +1279,8 @@
             </div>
 
             <div class="auth-tabs">
-                <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
-                <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+                <button class="auth-tab active" onclick="switchAuthTab('login', this)">Sign In</button>
+                <button class="auth-tab" onclick="switchAuthTab('signup', this)">Sign Up</button>
             </div>
 
             <!-- LOGIN FORM -->
@@ -1323,6 +1331,19 @@
             <div class="auth-help">
                 <p>Need an account? Ask your administrator for an activation key to sign up.</p>
             </div>
+        </div>
+
+        <!-- REQUEST ACCESS CARD -->
+        <div class="auth-card" style="margin-top: 0; padding: 20px 40px;">
+            <div style="text-align:center; margin-bottom:14px;">
+                <span style="font-size:13px; color:var(--text-muted);">Pas encore de compte ?</span>
+            </div>
+            <div id="request-form" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <input type="text" id="req-name" class="auth-field" style="flex:1; min-width:120px; padding:10px 14px; background:var(--bg-input); border:1px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-family:Inter,sans-serif; font-size:13px;" placeholder="Votre nom">
+                <input type="email" id="req-email" class="auth-field" style="flex:1; min-width:160px; padding:10px 14px; background:var(--bg-input); border:1px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-family:Inter,sans-serif; font-size:13px;" placeholder="Votre email">
+                <button id="req-btn" class="auth-btn" style="width:auto; padding:10px 18px; white-space:nowrap;" onclick="handleRequestKey()">🔑 Demander une clé</button>
+            </div>
+            <div id="req-message" style="margin-top:10px; font-size:12px; text-align:center; display:none;"></div>
         </div>
 
     </div>
@@ -1651,12 +1672,11 @@
         // =============================================
         // AUTHENTICATION UI HANDLERS
         // =============================================
-        function switchAuthTab(tab) {
+        function switchAuthTab(tab, btn) {
             document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
             document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
-
             document.getElementById(tab + '-form').classList.add('active');
-            event.target.classList.add('active');
+            if (btn) btn.classList.add('active');
         }
 
         async function handleLogin(event) {
@@ -1731,7 +1751,7 @@
                     document.getElementById('signup-password').value = '';
                     document.getElementById('signup-password-confirm').value = '';
                     document.getElementById('signup-activation-key').value = '';
-                    switchAuthTab('login');
+                    switchAuthTab('login', document.querySelector('.auth-tab'));
                     btn.disabled = false;
                     btn.textContent = 'Create Account';
                 }, 2000);
@@ -1739,30 +1759,35 @@
         }
 
         async function handleLogout() {
-            if (confirm('Are you sure you want to logout?')) {
-                try {
-                    // Clear form fields first
-                    document.getElementById('login-email').value = '';
-                    document.getElementById('login-password').value = '';
-                    if (document.getElementById('signup-email')) {
-                        document.getElementById('signup-email').value = '';
-                        document.getElementById('signup-password').value = '';
-                        document.getElementById('signup-key').value = '';
-                    }
-                    
-                    // Logout from Supabase
-                    await authManager.signout();
-                    
-                    // Wait for session to fully clear
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    // Force complete page reload to clear all state
-                    window.location.reload(true);
-                } catch (err) {
-                    console.error('Logout error:', err);
-                    // Force reload anyway
-                    window.location.reload(true);
-                }
+            if (!confirm('Voulez-vous vraiment vous déconnecter ?')) return;
+            try {
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) { logoutBtn.disabled = true; logoutBtn.textContent = '⏳...'; }
+
+                // Only clear app-specific localStorage keys, not Supabase auth tokens
+                localStorage.removeItem('stockinvoice_products');
+                localStorage.removeItem('stockinvoice_invoices');
+                localStorage.removeItem('stockinvoice_company');
+                sessionStorage.clear();
+
+                // Reset in-memory state
+                products = [];
+                invoices = [];
+                currentInvoice = [];
+
+                // Sign out from Supabase — onAuthStateChange will call updateUI automatically
+                await authManager.signout();
+
+                // Clear form fields
+                document.getElementById('login-email').value = '';
+                document.getElementById('login-password').value = '';
+
+                // Force UI to login screen in case onAuthStateChange was slow
+                await authManager.updateUI();
+            } catch (err) {
+                console.error('Logout error:', err);
+                // Fallback: force UI update
+                await authManager.updateUI();
             }
         }
 
@@ -1770,34 +1795,64 @@
             window.location.href = 'admin.html';
         }
 
+        async function handleRequestKey() {
+            const name  = document.getElementById('req-name').value.trim();
+            const email = document.getElementById('req-email').value.trim();
+            const btn   = document.getElementById('req-btn');
+            const msg   = document.getElementById('req-message');
+
+            msg.style.display = 'none';
+
+            if (!name) { showReqMsg('Veuillez entrer votre nom.', 'error'); return; }
+            if (!email || !/\S+@\S+\.\S+/.test(email)) { showReqMsg('Veuillez entrer un email valide.', 'error'); return; }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Envoi...';
+
+            const result = await authManager.submitKeyRequest(name, email);
+
+            btn.disabled = false;
+            btn.textContent = '🔑 Demander une clé';
+
+            if (result.error) {
+                showReqMsg('❌ ' + result.error, 'error');
+            } else {
+                showReqMsg('✅ Demande envoyée ! Vérifiez votre email après approbation par l\'admin.', 'success');
+                document.getElementById('req-name').value  = '';
+                document.getElementById('req-email').value = '';
+            }
+        }
+
+        function showReqMsg(text, type) {
+            const msg = document.getElementById('req-message');
+            msg.textContent = text;
+            msg.style.display = 'block';
+            msg.style.color = type === 'error' ? 'var(--accent-danger)' : 'var(--accent-success)';
+        }
+
         // =============================================
         // INITIALIZE ON PAGE LOAD
         // =============================================
         window.addEventListener('DOMContentLoaded', async () => {
             try {
-                // Preload session check silently (don't show login yet)
-                const loginContainer = document.getElementById('login-container');
-                if (loginContainer) loginContainer.classList.add('loading');
-                
+                // Wait for Supabase session check before showing anything
                 await authManager.init();
-                
+
                 // If user is logged in, initialize the app
                 if (authManager.getCurrentUser()) {
-                    console.log('User is logged in, initializing app');
                     await loadFromStorage();
                     userDashboard.init();
                     if (typeof init === 'function') {
                         await init();
                     }
                 }
-                
-                // Now show UI
-                if (loginContainer) loginContainer.classList.remove('loading');
+
+                // Mark body as ready — removes visibility:hidden from both containers
+                document.body.classList.add('auth-ready');
                 await authManager.updateUI();
             } catch (err) {
                 console.error('Initialization error:', err);
-                // Show login even on error
-                if (loginContainer) loginContainer.classList.remove('loading');
+                document.body.classList.add('auth-ready');
                 await authManager.updateUI();
             }
         });

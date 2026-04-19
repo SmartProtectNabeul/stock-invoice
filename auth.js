@@ -1,6 +1,7 @@
 // EmailJS Configuration
 const EMAILJS_SERVICE_ID = 'service_v4jfvxw';
-const EMAILJS_TEMPLATE_ID = 'template_ci6bo58';
+const EMAILJS_TEMPLATE_ID = 'template_ci6bo58';       // Admin notification template
+const EMAILJS_USER_TEMPLATE_ID = 'template_l205taj';  // Send key to user template
 const EMAILJS_PUBLIC_KEY = 'cQJtlQe-nDvVjCF20';
 const ADMIN_EMAIL = 'ahmedmmidonajjar@gmail.com';
 
@@ -93,23 +94,37 @@ class AuthManager {
         console.warn('EmailJS not loaded, skipping email notification');
         return;
       }
-
-      const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
         user_email: email,
-        signup_date: new Date().toLocaleDateString('fr-FR', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
+        signup_date: new Date().toLocaleDateString('fr-FR', {
+          year: 'numeric', month: 'long', day: 'numeric',
+          hour: '2-digit', minute: '2-digit'
         }),
+        event_type: 'Inscription (Sign Up)',
         to_email: ADMIN_EMAIL
       });
-
-      console.log('✅ Signup notification sent to admin:', response);
+      console.log('✅ Signup notification sent to admin');
     } catch (error) {
       console.error('⚠️ Failed to send signup notification:', error);
-      // Don't fail signup if email fails
+    }
+  }
+
+  // Send login notification email to admin
+  async sendLoginNotification(email) {
+    try {
+      if (typeof emailjs === 'undefined') return;
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        user_email: email,
+        signup_date: new Date().toLocaleDateString('fr-FR', {
+          year: 'numeric', month: 'long', day: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        }),
+        event_type: 'Connexion (Sign In)',
+        to_email: ADMIN_EMAIL
+      });
+      console.log('✅ Login notification sent to admin');
+    } catch (error) {
+      console.error('⚠️ Failed to send login notification:', error);
     }
   }
 
@@ -208,41 +223,32 @@ class AuthManager {
     console.log('User approved! Status:', profile.status, 'Role:', profile.role);
     this.currentUser = data.user;
     await this.loadUserProfile();
-    
+
+    // Notify admin of login (fire-and-forget)
+    this.sendLoginNotification(email);
+
     return { success: true, user: data.user };
   }
 
   // Sign out
   async signout() {
     try {
+      // Sign out from Supabase first (it clears its own tokens)
       const { error } = await supabaseClient.auth.signOut();
       if (error) console.error('Signout error:', error);
-      
-      // Fully clear session state
+
+      // Clear app data from localStorage (NOT all localStorage — that breaks Supabase cleanup)
+      ['stockinvoice_products', 'stockinvoice_invoices', 'stockinvoice_company'].forEach(k => localStorage.removeItem(k));
+      sessionStorage.clear();
+
       this.currentUser = null;
       this.userProfile = null;
-      
-      // Clear browser storage
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      // Clear all Supabase-related storage keys
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.includes('supabase') || key.includes('auth'))) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      
+
       return { success: true };
     } catch (err) {
       console.error('Signout error:', err);
       this.currentUser = null;
       this.userProfile = null;
-      localStorage.clear();
-      sessionStorage.clear();
       return { success: true };
     }
   }
@@ -283,6 +289,68 @@ class AuthManager {
       .eq('user_id', this.currentUser.id)
       .single();
     return data?.role === 'admin';
+  }
+
+  // Submit an access request (anonymous user asking for a key)
+  async submitKeyRequest(name, email) {
+    try {
+      // Block duplicate pending requests
+      const { data: existing } = await supabaseClient
+        .from('key_requests')
+        .select('id, status')
+        .eq('email', email)
+        .in('status', ['pending', 'approved'])
+        .maybeSingle();
+
+      if (existing) {
+        if (existing.status === 'approved') return { error: 'Une clé a déjà été envoyée à cet email.' };
+        return { error: 'Une demande est déjà en attente pour cet email.' };
+      }
+
+      // Insert the request
+      const { error } = await supabaseClient
+        .from('key_requests')
+        .insert({ name, email, status: 'pending' });
+
+      if (error) throw error;
+
+      // Notify admin by email
+      if (typeof emailjs !== 'undefined') {
+        emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          user_email: email,
+          user_name: name,
+          signup_date: new Date().toLocaleDateString('fr-FR', {
+            year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          }),
+          event_type: `Demande de clé d'accès de ${name}`,
+          to_email: ADMIN_EMAIL
+        }).catch(e => console.warn('Email admin failed:', e));
+      }
+
+      return { success: true };
+    } catch (err) {
+      return { error: err.message };
+    }
+  }
+
+  // Send the generated activation key to the user by email
+  async sendKeyToUser(name, email, key) {
+    if (typeof emailjs === 'undefined') {
+      console.warn('EmailJS not loaded');
+      return;
+    }
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_USER_TEMPLATE_ID, {
+        user_name: name,
+        activation_key: key,
+        to_email: email
+      });
+      console.log('✅ Activation key sent to user:', email);
+    } catch (err) {
+      console.error('⚠️ Failed to send key to user:', err);
+      throw err;
+    }
   }
 
   // Get current user
