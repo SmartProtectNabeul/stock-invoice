@@ -1,0 +1,651 @@
+<!-- Admin Dashboard -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - StockInvoice Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d2e;
+            --bg-card: #1e2235;
+            --bg-elevated: #252a3a;
+            --bg-input: #2a2f42;
+            --border-color: rgba(255, 255, 255, 0.06);
+            --text-primary: #e8eaf0;
+            --text-secondary: #8b8fa3;
+            --text-muted: #5a5e72;
+            --accent-primary: #6c63ff;
+            --accent-primary-hover: #7e77ff;
+            --accent-danger: #ff4757;
+            --accent-danger-hover: #ff6b7a;
+            --accent-success: #66bb6a;
+            --accent-info: #42a5f5;
+            --accent-warning: #ffa726;
+            --gradient-primary: linear-gradient(135deg, #6c63ff 0%, #4ecdc4 100%);
+            --gradient-header: linear-gradient(135deg, #1a1d2e 0%, #252a3a 100%);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .admin-header {
+            background: var(--gradient-header);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-md);
+        }
+
+        .admin-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all var(--transition-normal);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-primary-hover);
+            box-shadow: 0 4px 20px rgba(108, 99, 255, 0.4);
+        }
+
+        .btn-danger {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--accent-danger-hover);
+        }
+
+        .btn-success {
+            background: var(--accent-success);
+            color: #1a1d2e;
+        }
+
+        .btn-success:hover {
+            background: #81c784;
+        }
+
+        .btn-warning {
+            background: var(--accent-warning);
+            color: #1a1d2e;
+        }
+
+        .btn-warning:hover {
+            background: #ffb74d;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .admin-container {
+            max-width: 1400px;
+            margin: 24px auto;
+            padding: 0 24px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all var(--transition-normal);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .panel {
+            background: linear-gradient(145deg, #1e2235 0%, #252a3a 100%);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .panel-body {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table th {
+            padding: 12px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(108, 99, 255, 0.05);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: rgba(255, 167, 38, 0.15);
+            color: #ffa726;
+        }
+
+        .status-approved {
+            background: rgba(102, 187, 106, 0.15);
+            color: #66bb6a;
+        }
+
+        .status-suspended {
+            background: rgba(255, 71, 87, 0.15);
+            color: #ff4757;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification-success {
+            background: var(--accent-success);
+            color: #1a1d2e;
+        }
+
+        .notification-error {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            padding: 8px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: border-color var(--transition-normal);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            background: rgba(108, 99, 255, 0.15);
+            color: var(--accent-primary);
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="admin-header">
+        <div class="admin-logo">⚙️ Admin Dashboard</div>
+        <div class="user-menu">
+            <span id="admin-email" style="font-size: 13px; color: var(--text-secondary);"></span>
+            <button class="btn btn-danger btn-sm" onclick="logout()">🚪 Logout</button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <div class="admin-container">
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchAdminTab('pending')">📋 Pending Approvals</button>
+            <button class="tab-btn" onclick="switchAdminTab('users')">👥 All Users</button>
+            <button class="tab-btn" onclick="switchAdminTab('keys')">🔑 Activation Keys</button>
+            <button class="tab-btn" onclick="switchAdminTab('settings')">⚙️ Settings</button>
+        </div>
+
+        <!-- PENDING APPROVALS TAB -->
+        <div class="tab-content active" id="tab-pending">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Pending User Approvals</h2>
+                </div>
+                <div class="panel-body">
+                    <div id="pending-users-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ALL USERS TAB -->
+        <div class="tab-content" id="tab-users">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>All Users</h2>
+                </div>
+                <div class="panel-body">
+                    <div id="all-users-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTIVATION KEYS TAB -->
+        <div class="tab-content" id="tab-keys">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Activation Keys</h2>
+                    <button class="btn btn-primary btn-sm" onclick="showGenerateKeyModal()">+ Generate Key</button>
+                </div>
+                <div class="panel-body">
+                    <div id="keys-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div class="tab-content" id="tab-settings">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>System Settings</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="form-group">
+                        <label class="form-label">App Name</label>
+                        <input type="text" id="setting-app-name" class="form-input" placeholder="StockInvoice Pro">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Support Email</label>
+                        <input type="email" id="setting-support-email" class="form-input" placeholder="support@example.com">
+                    </div>
+                    <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GENERATE KEY MODAL -->
+    <div class="modal" id="generateKeyModal">
+        <div class="modal-content">
+            <div class="modal-title">Generate Activation Key</div>
+            <div class="form-group">
+                <label class="form-label">Key Description (optional)</label>
+                <input type="text" id="keyDescription" class="form-input" placeholder="e.g., For user John Doe">
+            </div>
+            <div class="modal-actions">
+                <button class="btn" style="background: var(--bg-elevated); border: 1px solid var(--border-color);" onclick="closeModal('generateKeyModal')">Cancel</button>
+                <button class="btn btn-success" onclick="generateActivationKey()">Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Config & Auth -->
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="admin-dashboard.js"></script>
+
+    <script>
+        // Initialize admin dashboard
+        async function initAdmin() {
+            await authManager.init();
+
+            // Check if user is admin
+            const isAdmin = await authManager.isAdmin();
+            if (!isAdmin) {
+                alert('You do not have admin access!');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Set user email in header
+            const user = authManager.getCurrentUser();
+            document.getElementById('admin-email').textContent = user?.email || '';
+
+            // Load initial data
+            await adminDashboard.init();
+            await adminDashboard.loadPendingUsers();
+            await adminDashboard.loadAllUsers();
+            loadActivationKeys();
+        }
+
+        // Tab switching
+        function switchAdminTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            document.getElementById('tab-' + tab).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tab === 'users') {
+                adminDashboard.loadAllUsers();
+            } else if (tab === 'pending') {
+                adminDashboard.loadPendingUsers();
+            } else if (tab === 'keys') {
+                loadActivationKeys();
+            }
+        }
+
+        // Activation Keys Management
+        async function loadActivationKeys() {
+            const { data, error } = await supabaseClient
+                .from('activation_keys')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error loading keys:', error);
+                return;
+            }
+
+            const container = document.getElementById('keys-list');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔑</div><div class="empty-state-title">No keys generated</div></div>';
+                return;
+            }
+
+            const html = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Expires</th>
+                            <th>Used By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(key => `
+                            <tr>
+                                <td><code style="background: var(--bg-input); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px;">${key.key}</code></td>
+                                <td><span class="status-badge status-${key.is_used ? 'approved' : 'pending'}">${key.is_used ? 'Used' : 'Unused'}</span></td>
+                                <td>${new Date(key.created_at).toLocaleDateString()}</td>
+                                <td>${new Date(key.expires_at).toLocaleDateString()}</td>
+                                <td>${key.used_by ? key.used_by.substring(0, 8) + '...' : '—'}</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" onclick="copyToClipboard('${key.key}')">📋 Copy</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteKey('${key.id}')">🗑️</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        async function generateActivationKey() {
+            const description = document.getElementById('keyDescription').value;
+            const key = 'KEY-' + Math.random().toString(36).substr(2, 12).toUpperCase();
+
+            try {
+                const { error } = await supabaseClient
+                    .from('activation_keys')
+                    .insert({
+                        key,
+                        created_by: authManager.getCurrentUser()?.email || 'admin'
+                    });
+
+                if (error) throw error;
+
+                closeModal('generateKeyModal');
+                document.getElementById('keyDescription').value = '';
+                loadActivationKeys();
+                showNotification('Key generated: ' + key, 'success');
+            } catch (error) {
+                showNotification('Failed to generate key: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteKey(keyId) {
+            if (!confirm('Delete this activation key?')) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('activation_keys')
+                    .delete()
+                    .eq('id', keyId);
+
+                if (error) throw error;
+
+                loadActivationKeys();
+                showNotification('Key deleted', 'success');
+            } catch (error) {
+                showNotification('Failed to delete key', 'error');
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            showNotification('Copied to clipboard!', 'success');
+        }
+
+        // Modal functions
+        function showGenerateKeyModal() {
+            document.getElementById('generateKeyModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Settings
+        function saveSettings() {
+            const settings = {
+                appName: document.getElementById('setting-app-name').value,
+                supportEmail: document.getElementById('setting-support-email').value
+            };
+            localStorage.setItem('admin_settings', JSON.stringify(settings));
+            showNotification('Settings saved', 'success');
+        }
+
+        // Logout
+        async function logout() {
+            await authManager.signout();
+            window.location.href = 'index.html';
+        }
+
+        // Notification
+        function showNotification(message, type) {
+            const notif = document.createElement('div');
+            notif.className = `notification notification-${type}`;
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', initAdmin);
+    </script>
+</body>
+</html>

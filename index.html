@@ -841,10 +841,247 @@
                 display: none !important;
             }
         }
+        /* ============================================
+           AUTH STYLES
+           ============================================ */
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1d2e 0%, #252a3a 100%);
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .auth-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-header p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .auth-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .auth-form {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .auth-field {
+            margin-bottom: 16px;
+        }
+
+        .auth-field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .auth-field input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all var(--transition-fast);
+        }
+
+        .auth-field input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
+        }
+
+        .auth-field input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            margin-top: 8px;
+        }
+
+        .auth-btn:hover {
+            background: var(--accent-primary-hover);
+            box-shadow: 0 4px 20px rgba(108, 99, 255, 0.4);
+        }
+
+        .auth-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .auth-message {
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .auth-message.success {
+            display: block;
+            background: rgba(102, 187, 106, 0.15);
+            color: #66bb6a;
+            border: 1px solid rgba(102, 187, 106, 0.3);
+        }
+
+        .auth-message.error {
+            display: block;
+            background: rgba(255, 71, 87, 0.15);
+            color: #ff4757;
+            border: 1px solid rgba(255, 71, 87, 0.3);
+        }
+
+        .auth-help {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 20px;
+        }
+
+        .app-container {
+            display: none;
+        }
+
     </style>
 </head>
 
 <body>
+    <!-- LOGIN/SIGNUP CONTAINER -->
+    <div class="auth-container" id="login-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>StockInvoice Pro</h1>
+                <p>Gestion de Stock & Facturation</p>
+            </div>
+
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+                <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <form class="auth-form active" id="login-form" onsubmit="handleLogin(event)">
+                <div id="login-message" class="auth-message"></div>
+                
+                <div class="auth-field">
+                    <label>Email</label>
+                    <input type="email" id="login-email" placeholder="your@email.com" required>
+                </div>
+
+                <div class="auth-field">
+                    <label>Password</label>
+                    <input type="password" id="login-password" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="auth-btn" id="login-btn">Sign In</button>
+            </form>
+
+            <!-- SIGNUP FORM -->
+            <form class="auth-form" id="signup-form" onsubmit="handleSignup(event)">
+                <div id="signup-message" class="auth-message"></div>
+
+                <div class="auth-field">
+                    <label>Email</label>
+                    <input type="email" id="signup-email" placeholder="your@email.com" required>
+                </div>
+
+                <div class="auth-field">
+                    <label>Password</label>
+                    <input type="password" id="signup-password" placeholder="Min. 8 characters" minlength="8" required>
+                </div>
+
+                <div class="auth-field">
+                    <label>Confirm Password</label>
+                    <input type="password" id="signup-password-confirm" placeholder="••••••••" required>
+                </div>
+
+                <div class="auth-field">
+                    <label>Activation Key *</label>
+                    <input type="text" id="signup-activation-key" placeholder="ADMIN-xxxxx or KEY-xxxxx" required>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Ask your admin for an activation key</p>
+                </div>
+
+                <button type="submit" class="auth-btn" id="signup-btn">Create Account</button>
+            </form>
+
+            <div class="auth-help">
+                <p>Need an account? Ask your administrator for an activation key to sign up.</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; font-size: 12px; color: var(--text-muted);">
+            Admin? <a href="admin.html" style="color: var(--accent-primary); text-decoration: none;">Go to Admin Panel</a>
+        </div>
+    </div>
+
+    <!-- APP CONTAINER (hidden by default) -->
+    <div class="app-container" id="app-container">
     <!-- TOAST CONTAINER -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -860,6 +1097,11 @@
         <div class="tab-btns">
             <button class="tab-btn active" id="tab-btn-stock" onclick="switchTab('stock')">📋 Stock</button>
             <button class="tab-btn" id="tab-btn-invoices" onclick="switchTab('invoices')">🧾 Factures</button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div style="display: flex; align-items: center; gap: 12px; justify-content: flex-end;">
+            <span id="user-email" style="font-size: 12px; color: var(--text-secondary);"></span>
+            <button class="btn btn-ghost" onclick="logout()" id="logout-btn" style="display: none;">🚪 Logout</button>
         </div>
     </header>
 
@@ -1083,10 +1325,137 @@
             </div>
         </div>
     </div>
+    </div>
 
     <!-- EXTERNAL LIBS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Configuration & Authentication -->
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="user-dashboard.js"></script>
+
+    <script>
+        // =============================================
+        // AUTHENTICATION UI HANDLERS
+        // =============================================
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
+
+            document.getElementById(tab + '-form').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const btn = document.getElementById('login-btn');
+            const msgEl = document.getElementById('login-message');
+
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+            msgEl.classList.remove('success', 'error');
+            msgEl.textContent = '';
+
+            const result = await authManager.signin(email, password);
+
+            if (result.error) {
+                msgEl.classList.add('error');
+                msgEl.textContent = result.error;
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            } else {
+                msgEl.classList.add('success');
+                msgEl.textContent = 'Login successful! Redirecting...';
+                setTimeout(() => {
+                    authManager.updateUI();
+                    userDashboard.init();
+                    document.getElementById('login-email').value = '';
+                    document.getElementById('login-password').value = '';
+                }, 500);
+            }
+        }
+
+        async function handleSignup(event) {
+            event.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('signup-password-confirm').value;
+            const activationKey = document.getElementById('signup-activation-key').value;
+            const btn = document.getElementById('signup-btn');
+            const msgEl = document.getElementById('signup-message');
+
+            // Validate
+            if (password !== confirmPassword) {
+                msgEl.classList.add('error');
+                msgEl.textContent = 'Passwords do not match';
+                msgEl.classList.remove('success');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Creating account...';
+            msgEl.classList.remove('success', 'error');
+            msgEl.textContent = '';
+
+            const result = await authManager.signup(email, password, activationKey);
+
+            if (result.error) {
+                msgEl.classList.add('error');
+                msgEl.textContent = result.error;
+                msgEl.classList.remove('success');
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
+            } else {
+                msgEl.classList.add('success');
+                msgEl.textContent = 'Account created successfully! Please wait for admin approval.';
+                setTimeout(() => {
+                    document.getElementById('signup-email').value = '';
+                    document.getElementById('signup-password').value = '';
+                    document.getElementById('signup-password-confirm').value = '';
+                    document.getElementById('signup-activation-key').value = '';
+                    switchAuthTab('login');
+                    btn.disabled = false;
+                    btn.textContent = 'Create Account';
+                }, 2000);
+            }
+        }
+
+        async function logout() {
+            const result = await authManager.signout();
+            if (!result.error) {
+                authManager.updateUI();
+                location.reload();
+            }
+        }
+
+        // =============================================
+        // INITIALIZE ON PAGE LOAD
+        // =============================================
+        window.addEventListener('DOMContentLoaded', async () => {
+            await authManager.init();
+            
+            // If user is logged in, initialize the app
+            if (authManager.getCurrentUser()) {
+                userDashboard.init();
+                init();
+            }
+        });
+
+        // Logout button visibility
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.style.display = 'none';
+            }
+        });
+    </script>
 
     <script>
         // =============================================

@@ -1,0 +1,165 @@
+# Quick Reference - StockInvoice Pro Authentication Setup
+
+## 🚀 5-Minute Setup
+
+### 1. Create Supabase Project
+- Go to https://app.supabase.com
+- Create new project named `stock-invoice`
+- Wait for initialization (2-3 min)
+
+### 2. Get Credentials
+- Settings → API
+- Copy Project URL and anon key
+- Save them safely
+
+### 3. Setup Database
+- SQL Editor → New Query
+- Copy ALL SQL from SUPABASE_SETUP.md
+- Run each block (users, activation_keys, stocks, invoices)
+- Enable RLS policies from that file too
+
+### 4. Update Config
+Open `supabase-config.js`:
+```javascript
+const SUPABASE_URL = 'https://YOUR_ID.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_KEY';
+```
+
+### 5. Create First Admin
+1. Open http://localhost/stock-invoice
+2. Sign Up with activation key (generate in Supabase SQL)
+3. In Supabase: Set role='admin' and status='approved'
+4. Go to http://localhost/stock-invoice/admin.html
+
+---
+
+## 📋 File Locations
+
+| File | Purpose |
+|------|---------|
+| `index.html` | Login + Main App |
+| `admin.html` | Admin Dashboard |
+| `supabase-config.js` | **UPDATE THIS** with credentials |
+| `auth.js` | Login/Signup logic |
+| `admin-dashboard.js` | Admin functions |
+| `user-dashboard.js` | User data functions |
+| `SUPABASE_SETUP.md` | All SQL + setup |
+| `README.md` | Full documentation |
+
+---
+
+## 🔑 Key Credentials
+
+After Step 2, you'll have:
+```
+Supabase URL:  https://xxxxx.supabase.co
+Anon Key:      eyJhb...xxxxx
+```
+
+These go in `supabase-config.js`
+
+---
+
+## 👤 User Flow
+
+```
+1. User visits http://localhost/stock-invoice
+   ↓
+2. User clicks "Sign Up"
+   ↓
+3. User enters email, password, activation key
+   ↓
+4. System verifies key is valid
+   ↓
+5. User account created with status="pending"
+   ↓
+6. Admin reviews in "Pending Approvals"
+   ↓
+7. Admin clicks "Approve"
+   ↓
+8. User receives approval email
+   ↓
+9. User can now login
+   ↓
+10. User sees their personal stock and invoices
+```
+
+---
+
+## 👨‍💼 Admin Flow
+
+```
+Admin Portal: http://localhost/stock-invoice/admin.html
+
+Tabs:
+├─ Pending Approvals → Review new users → Approve/Reject
+├─ All Users → View all accounts → Suspend/Resume
+├─ Activation Keys → Generate new keys for signup
+└─ Settings → Configure app options
+```
+
+---
+
+## 🗄️ Database Tables
+
+1. **user_profiles** - User accounts & status
+2. **activation_keys** - One-time signup codes
+3. **user_stocks** - Each user's products
+4. **user_invoices** - Each user's invoices
+
+Each user can only see their own data (RLS enabled)
+
+---
+
+## 🔓 Security Features
+
+✓ Passwords hashed by Supabase  
+✓ Row-level security (users see only their data)  
+✓ Activation keys expire in 30 days  
+✓ Admin approval required to login  
+✓ Account suspension available  
+
+---
+
+## ❌ Common Mistakes
+
+1. **Not running ALL SQL blocks** → Tables won't exist
+2. **Wrong credentials in config** → "Connection failed"
+3. **User status not set to 'approved'** → "Awaiting approval"
+4. **RLS not enabled** → Users can see all data
+5. **Activation key typo** → "Invalid key"
+
+---
+
+## 📞 If Something Goes Wrong
+
+1. Check `SUPABASE_SETUP.md` for SQL troubleshooting
+2. Review Supabase Logs tab for errors
+3. Verify credentials in `supabase-config.js`
+4. Check browser console (F12) for JavaScript errors
+5. Ensure RLS policies are created
+
+---
+
+## 📧 Email Notifications
+
+Optional - Configure in Supabase:
+- Settings → Email Configuration
+- Use Supabase email or SendGrid
+- Users get notified when approved
+
+---
+
+## 🎯 Success Indicators
+
+✓ Can create account with activation key  
+✓ Admin can see pending users  
+✓ Can approve user and see success email  
+✓ User can login after approval  
+✓ User can import stock and create invoices  
+✓ Admin can suspend/resume accounts  
+
+---
+
+**Version**: 1.0  
+**Created**: April 2026
