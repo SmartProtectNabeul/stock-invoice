@@ -5,9 +5,9 @@ const EMAILJS_USER_TEMPLATE_ID = 'template_l205taj';  // Send key to user templa
 const EMAILJS_PUBLIC_KEY = 'cQJtlQe-nDvVjCF20';
 const ADMIN_EMAIL = 'ahmedmmidonajjar@gmail.com';
 
-// Initialize EmailJS
+// Initialize EmailJS (v4 API)
 if (typeof emailjs !== 'undefined') {
-  emailjs.init(EMAILJS_PUBLIC_KEY);
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 }
 
 // Authentication Module
