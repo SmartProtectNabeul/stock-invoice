@@ -1662,11 +1662,6 @@
             
             <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label">ID du Produit</label>
-                    <input type="text" id="edit-item-id" class="form-input" placeholder="ID" readonly style="opacity:0.7;">
-                </div>
-                
-                <div class="form-group">
                     <label class="form-label">Nom du Produit *</label>
                     <input type="text" id="edit-item-name" class="form-input" placeholder="Ex: T-Shirt Blanc" required>
                 </div>
@@ -2241,7 +2236,6 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             editSelectedImageFile = null;
 
             // Pre-fill form with product data
-            document.getElementById('edit-item-id').value = product.id;
             document.getElementById('edit-item-name').value = product.name;
             document.getElementById('edit-item-category').value = product.category || '';
             document.getElementById('edit-item-price').value = product.price;
@@ -2276,7 +2270,6 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             editSelectedImageFile = null;
             
             // Clear form
-            document.getElementById('edit-item-id').value = '';
             document.getElementById('edit-item-name').value = '';
             document.getElementById('edit-item-category').value = '';
             document.getElementById('edit-item-price').value = '';
