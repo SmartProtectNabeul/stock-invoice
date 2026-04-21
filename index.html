@@ -1978,12 +1978,22 @@
                     }
                 }
 
-                // Also load from localStorage as fallback
+                // Always load from localStorage and MERGE with Supabase data
+                // (Supabase takes priority for matching IDs; localStorage fills in the rest)
                 const p = localStorage.getItem(STORAGE_KEY_PRODUCTS);
                 const i = localStorage.getItem(STORAGE_KEY_INVOICES);
-                // Safe parse: guard against corrupt/undefined strings
-                if (p && p !== 'undefined' && p !== 'null' && products.length === 0) {
-                    try { products = JSON.parse(p); } catch(e) { console.warn('Bad products JSON in localStorage, ignoring.'); }
+                if (p && p !== 'undefined' && p !== 'null') {
+                    try {
+                        const localProducts = JSON.parse(p);
+                        if (Array.isArray(localProducts) && localProducts.length > 0) {
+                            // Add any localStorage products whose ID is NOT already in the Supabase list
+                            const supabaseIds = new Set(products.map(x => String(x.id)));
+                            const localOnly = localProducts.filter(x => !supabaseIds.has(String(x.id)));
+                            if (localOnly.length > 0) {
+                                products = [...products, ...localOnly];
+                            }
+                        }
+                    } catch(e) { console.warn('Bad products JSON in localStorage, ignoring.'); }
                 }
                 if (i && i !== 'undefined' && i !== 'null' && invoices.length === 0) {
                     try { invoices = JSON.parse(i); } catch(e) { console.warn('Bad invoices JSON in localStorage, ignoring.'); }
@@ -2500,9 +2510,12 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
                     const toSync = products.filter(p => p._needsSync);
                     // Use upsert to avoid duplicates on re-import of same id
                     if (toSync.length > 0) {
-                        await supabaseClient.from('user_stocks').upsert(
+                        const { data: upserted } = await supabaseClient.from('user_stocks').upsert(
                             toSync.map(p => ({
-                                ...(p.id && !p.id.startsWith('MANUAL-') ? { id: p.id } : {}),
+                                // Only pass id to Supabase if it is already a valid UUID;
+                                // CSV custom IDs like "P001" are NOT valid UUIDs and must be omitted
+                                // so Supabase auto-generates a proper UUID.
+                                ...(p.id && isValidUUID(p.id) ? { id: p.id } : {}),
                                 user_id: userId,
                                 name: p.name,
                                 category: p.category,
@@ -2511,9 +2524,22 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
                                 colors: p.colors,
                                 image: p.image || null
                             }))
-                        );
+                        ).select();
                         // Remove sync flag
                         products.forEach(p => delete p._needsSync);
+                        // If Supabase returned the new UUIDs, update local products so
+                        // future edits/deletes target the correct Supabase row.
+                        if (upserted && Array.isArray(upserted)) {
+                            upserted.forEach((row, idx) => {
+                                const localProd = toSync[idx];
+                                if (localProd && row.id && !isValidUUID(localProd.id)) {
+                                    const prodInArray = products.find(p => p.id === localProd.id);
+                                    if (prodInArray) prodInArray.id = row.id;
+                                }
+                            });
+                        }
+                        // Persist updated IDs to localStorage
+                        saveToStorage();
                     }
                 } catch(e) { console.warn('Supabase import sync failed:', e); }
             }
