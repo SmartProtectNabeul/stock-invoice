@@ -73,20 +73,68 @@ class AdminDashboard {
   // Approve user
   async approveUser(userId) {
     try {
-      // Update user profile status
+      // Get user profile with email
+      const { data: userProfile, error: fetchError } = await supabaseClient
+        .from('user_profiles')
+        .select('email, id')
+        .eq('user_id', userId)
+        .single();
+
+      if (fetchError || !userProfile) throw new Error('User not found');
+
+      // Generate approval key (8 random alphanumeric characters)
+      const approvalKey = this.generateApprovalKey();
+
+      // Update user profile status and store approval key
       const { error: updateError } = await supabaseClient
         .from('user_profiles')
-        .update({ status: 'approved', approved_at: new Date() })
+        .update({ 
+          status: 'approved', 
+          approved_at: new Date(),
+          approval_key: approvalKey
+        })
         .eq('user_id', userId);
 
       if (updateError) throw updateError;
 
+      // Send approval email with key to the user
+      await this.sendApprovalEmail(userProfile.email, approvalKey);
+
       // Reload pending users
       await this.loadPendingUsers();
-      this.showNotification('✅ User approved successfully!', 'success');
+      this.showNotification('✅ User approved successfully! Email sent with approval key.', 'success');
     } catch (error) {
       console.error('Error approving user:', error);
       this.showNotification('❌ Failed to approve user: ' + error.message, 'error');
+    }
+  }
+
+  // Generate approval key
+  generateApprovalKey() {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let key = '';
+    for (let i = 0; i < 8; i++) {
+      key += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return key;
+  }
+
+  // Send approval email with key to user
+  async sendApprovalEmail(userEmail, approvalKey) {
+    try {
+      if (typeof emailjs === 'undefined') {
+        console.warn('EmailJS not loaded, skipping approval email');
+        return;
+      }
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_USER_TEMPLATE_ID, {
+        to_email: userEmail,
+        user_name: userEmail.split('@')[0],
+        activation_key: approvalKey
+      });
+      console.log('✅ Approval key email sent to user:', userEmail);
+    } catch (error) {
+      console.error('⚠️ Failed to send approval email:', error);
+      throw error;
     }
   }
 
@@ -144,8 +192,6 @@ class AdminDashboard {
       this.showNotification('Failed to restore user account', 'error');
     }
   }
-
-  // Send approval email via Supabase
 
   // Render pending users table
   renderPendingUsers() {
