@@ -73,6 +73,8 @@ class AdminDashboard {
   // Approve user
   async approveUser(userId) {
     try {
+      console.log('🔵 approveUser called for userId:', userId);
+      
       // Get user profile with email
       const { data: userProfile, error: fetchError } = await supabaseClient
         .from('user_profiles')
@@ -80,10 +82,16 @@ class AdminDashboard {
         .eq('user_id', userId)
         .single();
 
-      if (fetchError || !userProfile) throw new Error('User not found');
+      if (fetchError || !userProfile) {
+        console.error('❌ User profile not found:', fetchError);
+        throw new Error('User not found');
+      }
+
+      console.log('📋 User found:', userProfile.email);
 
       // Generate approval key (8 random alphanumeric characters)
       const approvalKey = this.generateApprovalKey();
+      console.log('🔑 Generated approval key:', approvalKey);
 
       // Update user profile status and store approval key
       const { error: updateError } = await supabaseClient
@@ -95,16 +103,30 @@ class AdminDashboard {
         })
         .eq('user_id', userId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Database update error:', updateError);
+        throw updateError;
+      }
 
-      // Send approval email with key to the user
-      await this.sendApprovalEmail(userProfile.email, approvalKey);
+      console.log('✅ Database updated - status: approved, key stored');
+
+      // Send approval email with key to the user via authManager (don't fail if email fails)
+      try {
+        console.log('📧 Attempting to send approval email...');
+        // Use authManager's sendKeyToUser method with user name extracted from email
+        const userName = userProfile.email.split('@')[0];
+        await authManager.sendKeyToUser(userName, userProfile.email, approvalKey);
+        this.showNotification('✅ User approved! Email with approval key sent to ' + userProfile.email, 'success');
+        console.log('✅ Email sent successfully');
+      } catch (emailError) {
+        console.error('❌ Email send failed:', emailError);
+        this.showNotification('❌ User approved BUT email failed: ' + emailError.message, 'error');
+      }
 
       // Reload pending users
       await this.loadPendingUsers();
-      this.showNotification('✅ User approved successfully! Email sent with approval key.', 'success');
     } catch (error) {
-      console.error('Error approving user:', error);
+      console.error('❌ Error approving user:', error);
       this.showNotification('❌ Failed to approve user: ' + error.message, 'error');
     }
   }
@@ -117,25 +139,6 @@ class AdminDashboard {
       key += characters.charAt(Math.floor(Math.random() * characters.length));
     }
     return key;
-  }
-
-  // Send approval email with key to user
-  async sendApprovalEmail(userEmail, approvalKey) {
-    try {
-      if (typeof emailjs === 'undefined') {
-        console.warn('EmailJS not loaded, skipping approval email');
-        return;
-      }
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_USER_TEMPLATE_ID, {
-        to_email: userEmail,
-        user_name: userEmail.split('@')[0],
-        activation_key: approvalKey
-      });
-      console.log('✅ Approval key email sent to user:', userEmail);
-    } catch (error) {
-      console.error('⚠️ Failed to send approval email:', error);
-      throw error;
-    }
   }
 
   // Reject user

@@ -336,19 +336,34 @@ class AuthManager {
 
   // Send the generated activation key to the user by email
   async sendKeyToUser(name, email, key) {
+    console.log('🔵 sendKeyToUser called - email:', email, 'key:', key);
+    
     if (typeof emailjs === 'undefined') {
-      console.warn('EmailJS not loaded');
-      return;
+      console.error('❌ EmailJS library not loaded. Check if script tag is in HTML.');
+      throw new Error('EmailJS library not available - check browser console');
     }
+    
     try {
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_USER_TEMPLATE_ID, {
+      console.log('📧 Sending email via EmailJS...');
+      console.log('  Service ID:', EMAILJS_SERVICE_ID);
+      console.log('  Template ID:', EMAILJS_USER_TEMPLATE_ID);
+      console.log('  Params: name=' + name + ', email=' + email + ', key=' + key);
+      
+      const result = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_USER_TEMPLATE_ID, {
         user_name: name,
         activation_key: key,
         to_email: email
       });
-      console.log('✅ Activation key sent to user:', email);
+      
+      console.log('✅ Activation key email sent successfully:', result);
+      return result;
     } catch (err) {
-      console.error('⚠️ Failed to send key to user:', err);
+      console.error('❌ Failed to send key to user:', err);
+      console.error('Error details:', {
+        message: err.message,
+        status: err.status,
+        response: err.response
+      });
       throw err;
     }
   }
