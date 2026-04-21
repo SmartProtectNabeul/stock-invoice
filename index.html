@@ -2352,25 +2352,31 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
                     product.image = imageUrl;
                 }
 
-                // Save to Supabase
-                const userId = authManager.getCurrentUser()?.id;
-                if (userId) {
-                    const { error } = await supabaseClient
-                        .from('user_stocks')
-                        .update({
-                            name: product.name,
-                            category: product.category,
-                            price: product.price,
-                            colors: product.colors,
-                            image: product.image
-                        })
-                        .eq('id', currentEditingProductId);
-
-                    if (error) throw error;
-                }
-
                 // Save to local storage
                 saveToStorage();
+
+                // Save to Supabase only if it's a valid UUID (not a local ID like "P002")
+                const userId = authManager.getCurrentUser()?.id;
+                if (userId && isValidUUID(currentEditingProductId)) {
+                    try {
+                        const { error } = await supabaseClient
+                            .from('user_stocks')
+                            .update({
+                                name: product.name,
+                                category: product.category,
+                                price: product.price,
+                                colors: product.colors,
+                                image: product.image
+                            })
+                            .eq('id', currentEditingProductId);
+
+                        if (error) {
+                            console.warn('Supabase update failed:', error);
+                        }
+                    } catch (e) {
+                        console.warn('Supabase update error:', e);
+                    }
+                }
 
                 // Refresh the stock display
                 renderStockTable();
@@ -2516,6 +2522,15 @@ P005,Bureau en Bois Massif,Mobilier,450.000,15,Chêne|Noyer,`;
             if (failCount > 0) msg += ` (${failCount} lignes ignorées)`;
             showToast(msg, successCount > 0 ? 'success' : 'error');
         });
+
+        // =============================================
+        // UTILITY FUNCTIONS
+        // =============================================
+        function isValidUUID(id) {
+            // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            return uuidRegex.test(id);
+        }
 
         // =============================================
         // CSV EXPORT
