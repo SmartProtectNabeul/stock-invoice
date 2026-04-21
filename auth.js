@@ -336,7 +336,10 @@ class AuthManager {
 
   // Send the generated activation key to the user by email
   async sendKeyToUser(name, email, key) {
-    console.log('🔵 sendKeyToUser called - email:', email, 'key:', key);
+    console.log('🔵 sendKeyToUser called');
+    console.log('   TO EMAIL (IMPORTANT):', email);
+    console.log('   Key:', key);
+    console.log('   Name:', name);
     
     if (typeof emailjs === 'undefined') {
       console.error('❌ EmailJS library not loaded. Check if script tag is in HTML.');
@@ -345,25 +348,29 @@ class AuthManager {
     
     try {
       console.log('📧 Sending email via EmailJS...');
-      console.log('  Service ID:', EMAILJS_SERVICE_ID);
-      console.log('  Template ID:', EMAILJS_USER_TEMPLATE_ID);
-      console.log('  Params: name=' + name + ', email=' + email + ', key=' + key);
+      console.log('   Service ID:', EMAILJS_SERVICE_ID);
+      console.log('   Template ID:', EMAILJS_USER_TEMPLATE_ID);
+      console.log('   ⚠️ VERIFY THIS EMAIL ADDRESS IS CORRECT IN CONSOLE:', email);
       
-      const result = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_USER_TEMPLATE_ID, {
+      const emailParams = {
         user_name: name,
         activation_key: key,
         to_email: email
-      });
+      };
       
-      console.log('✅ Activation key email sent successfully:', result);
+      console.log('   Full params object:', emailParams);
+      
+      const result = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_USER_TEMPLATE_ID, emailParams);
+      
+      console.log('✅ Email sent! Response:', result);
+      console.log('✅ CHECK YOUR EMAIL:', email);
       return result;
     } catch (err) {
-      console.error('❌ Failed to send key to user:', err);
-      console.error('Error details:', {
-        message: err.message,
-        status: err.status,
-        response: err.response
-      });
+      console.error('❌ FAILED TO SEND EMAIL');
+      console.error('Error message:', err.message);
+      console.error('Error status:', err.status);
+      console.error('Error response:', err.response);
+      console.error('Full error:', err);
       throw err;
     }
   }
