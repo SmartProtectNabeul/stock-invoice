@@ -809,16 +809,565 @@
             }
         }
 
-        @media (max-width: 768px) {
-            .toolbar {
-                padding: 10px 16px;
-            }
-            .main-layout {
-                padding: 12px 16px;
-            }
-            .input-search {
-                width: 180px;
-            }
+        /* ============================================
+           MOBILE — BOTTOM NAV + DRAWER TOOLBAR
+           ============================================ */
+
+        /* Bottom nav bar (mobile only) */
+        .mobile-bottom-nav {
+            display: none;
+        }
+
+        /* Mobile toolbar drawer */
+        .mobile-toolbar-drawer {
+            display: none;
+        }
+
+      @media (max-width: 768px) {
+
+  /* ───────── Desktop UI → Hide ───────── */
+  .file-input-label {
+    display: none;
+  }
+
+  #btn-model,
+  #btn-export {
+    display: none;
+  }
+
+
+  /* ───────── Mobile Bottom Navigation Bar ───────── */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: rgba(26, 29, 46, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(108, 99, 255, 0.2);
+    padding: 6px 0 env(safe-area-inset-bottom, 6px);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 4px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    transition: all 0.2s ease;
+    border-radius: 10px;
+    margin: 0 2px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-nav-item .nav-icon {
+    font-size: 20px;
+    line-height: 1;
+    transition: transform 0.2s ease;
+  }
+
+  .mobile-nav-item:active .nav-icon {
+    transform: scale(0.85);
+  }
+
+  .mobile-nav-item.active {
+    color: var(--accent-primary);
+  }
+
+  .mobile-nav-item.active .nav-icon {
+    filter: drop-shadow(0 0 6px rgba(108, 99, 255, 0.6));
+  }
+
+  .mobile-nav-item.nav-cta {
+    color: white;
+  }
+
+  .mobile-nav-cta-wrap {
+    width: 44px;
+    height: 44px;
+    background: var(--gradient-primary);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 16px rgba(108, 99, 255, 0.5);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .mobile-nav-item.nav-cta:active .mobile-nav-cta-wrap {
+    transform: scale(0.9);
+    box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3);
+  }
+
+
+  /* ───────── Mobile Toolbar Drawer ───────── */
+  .mobile-toolbar-drawer {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 300;
+    background: var(--bg-secondary);
+    border-top: 1px solid rgba(108, 99, 255, 0.25);
+    border-radius: 20px 20px 0 0;
+    padding: 16px 20px calc(env(safe-area-inset-bottom, 0px) + 80px);
+    box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.6);
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .mobile-toolbar-drawer.open {
+    transform: translateY(0%);
+  }
+
+  .drawer-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+
+  .drawer-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 14px;
+  }
+
+  .drawer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .drawer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 10px;
+    border-radius: 12px;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .drawer-btn:active {
+    transform: scale(0.95);
+    opacity: 0.85;
+  }
+
+  .drawer-btn-import {
+    grid-column: 1 / -1;
+    background: rgba(108, 99, 255, 0.15);
+    border: 1.5px dashed var(--accent-primary);
+    color: var(--accent-primary);
+    position: relative;
+  }
+
+  .drawer-btn-import input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
+
+  .drawer-btn-model {
+    background: var(--accent-info);
+    color: white;
+  }
+
+  .drawer-btn-add {
+    background: var(--accent-primary);
+    color: white;
+  }
+
+  .drawer-btn-export {
+    background: var(--accent-success);
+    color: #1a1d2e;
+  }
+
+  .drawer-btn-delete {
+    background: rgba(255, 71, 87, 0.15);
+    color: var(--accent-danger);
+    border: 1px solid rgba(255, 71, 87, 0.25);
+  }
+
+  .drawer-search {
+    width: 100%;
+    padding: 12px 16px 12px 42px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235a5e72' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 14px center;
+  }
+
+  .drawer-search:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
+  }
+
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 299;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+  }
+
+  .drawer-backdrop.open {
+    display: block;
+  }
+
+
+  /* ───────── Header & Layout ───────── */
+  .app-header {
+    padding: 0 16px;
+    height: 56px;
+  }
+
+  .app-logo-text,
+  .app-logo-sub {
+    display: none;
+  }
+
+  .main-layout {
+    padding: 12px 12px calc(80px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+    height: auto;
+  }
+
+  .panel {
+    min-height: unset;
+    border-radius: var(--radius-lg);
+  }
+
+  .panel-header {
+    padding: 14px 16px;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .panel-header h2 {
+    font-size: 14px;
+  }
+
+
+  /* ───────── Mobile Search Bar ───────── */
+  .mobile-search-bar {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .mobile-search-bar input {
+    width: 100%;
+    padding: 10px 16px 10px 40px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235a5e72' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 12px center;
+  }
+
+  .mobile-search-bar input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+  }
+
+
+  /* ───────── Stock Table → Card Layout ───────── */
+  #stock-table thead {
+    display: none;
+  }
+
+  #stock-table,
+  #stock-table tbody {
+    display: block;
+  }
+
+  #stock-table tbody tr {
+    display: grid;
+    grid-template-columns: auto 40px 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 4px 10px;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    background: transparent !important;
+  }
+
+  #stock-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  /* Col 1: checkbox */
+  #stock-table tbody tr td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Col 2: image */
+  #stock-table tbody tr td:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    display: flex;
+    align-items: center;
+  }
+
+  #stock-table tbody tr td:nth-child(2) img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  /* Col 3: hidden ID */
+  #stock-table tbody tr td:nth-child(3) {
+    grid-column: 3;
+    grid-row: 1;
+    display: none;
+  }
+
+  /* Col 4: name */
+  #stock-table tbody tr td:nth-child(4) {
+    grid-column: 3;
+    grid-row: 1;
+    text-align: left !important;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Col 5: category */
+  #stock-table tbody tr td:nth-child(5) {
+    grid-column: 3;
+    grid-row: 2;
+    text-align: left !important;
+    font-size: 11px;
+  }
+
+  /* Col 7: colors */
+  #stock-table tbody tr td:nth-child(7) {
+    display: none;
+  }
+
+  /* Col 8: stock input */
+  #stock-table tbody tr td:nth-child(8) {
+    grid-column: 4;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    text-align: right !important;
+  }
+
+  #stock-table tbody tr td:nth-child(8) input {
+    width: 52px;
+    padding: 6px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 8px;
+  }
+
+  /* Col 9: actions */
+  #stock-table tbody tr td:nth-child(9) {
+    grid-column: 4;
+    grid-row: 2;
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+
+  #stock-table tbody tr td:nth-child(9) .btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
+
+  /* ───────── Invoice Editor ───────── */
+  .editor-section {
+    padding: 12px 14px;
+  }
+
+  .editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .totals-section {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .total-box {
+    width: 100%;
+  }
+
+  .action-bar {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+
+  /* ───────── Invoice History Table → Cards ───────── */
+  #invoices-table thead {
+    display: none;
+  }
+
+  #invoices-table,
+  #invoices-table tbody {
+    display: block;
+  }
+
+  #invoices-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 2px 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  #invoices-table tbody tr td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--accent-primary);
+    text-align: left !important;
+  }
+
+  #invoices-table tbody tr td:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right !important;
+  }
+
+  #invoices-table tbody tr td:nth-child(3) {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left !important;
+  }
+
+  #invoices-table tbody tr td:nth-child(4) {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-align: right !important;
+  }
+
+  #invoices-table tbody tr td:nth-child(5) {
+    grid-column: 1;
+    grid-row: 3;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--accent-secondary);
+    text-align: left !important;
+  }
+
+  #invoices-table tbody tr td:nth-child(6) {
+    grid-column: 2;
+    grid-row: 3;
+    text-align: right !important;
+  }
+
+  #invoices-table tbody tr td:nth-child(6) .btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+
+  /* ───────── Modals ───────── */
+  .modal-content {
+    width: 95%;
+    max-height: 85vh;
+    padding: 20px 16px;
+    border-radius: 20px 20px 0 0;
+    position: fixed;
+    bottom: 0;
+    margin: 0;
+  }
+
+  .modal {
+    align-items: flex-end;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  /* ───────── Auth ───────── */
+  .auth-card {
+    width: 92%;
+    padding: 24px 20px;
+  }
+
+}
+
+        @media (max-width: 480px) {
+            .app-header { padding: 0 12px; height: 52px; }
+            .app-logo-icon { width: 30px; height: 30px; font-size: 16px; }
+            .main-layout { padding: 8px 8px calc(76px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
+            #stock-table tbody tr td:nth-child(4) { font-size: 13px; }
+            .auth-card { width: 96%; padding: 20px 16px; }
         }
 
         /* ============================================
@@ -1424,7 +1973,7 @@
                         Cliquez sur <strong>📥 Modèle</strong> pour télécharger un fichier CSV exemple, remplissez-le avec vos produits, puis cliquez sur <strong>📂 Importer Stock</strong> pour charger votre inventaire.
                     </div>
                 </div>
-                <table class="data-table" id="stock-table" style="display:none;">
+                <table class="data-table" id="stock-table" style="">
                     <thead>
                         <tr>
                             <th class="checkbox-cell"><input type="checkbox" id="select-all" title="Sélectionner tout"></th>
