@@ -96,6 +96,47 @@ CREATE INDEX idx_user_invoices_user_id ON user_invoices(user_id);
 CREATE INDEX idx_user_invoices_number ON user_invoices(invoice_number);
 ```
 
+### 5. Key Requests Table (Access Request Feature)
+```sql
+CREATE TABLE key_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  generated_key TEXT,
+  requested_at TIMESTAMP DEFAULT now(),
+  reviewed_at TIMESTAMP,
+  reviewed_by TEXT
+);
+
+CREATE INDEX idx_key_requests_email ON key_requests(email);
+CREATE INDEX idx_key_requests_status ON key_requests(status);
+
+-- RLS for key_requests
+ALTER TABLE key_requests ENABLE ROW LEVEL SECURITY;
+
+-- Allow anyone to insert a request (unauthenticated users requesting access)
+CREATE POLICY "Anyone can insert key requests" ON key_requests
+  FOR INSERT WITH CHECK (true);
+
+-- Only admins can view and update requests
+CREATE POLICY "Admins can view all key requests" ON key_requests
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles up
+      WHERE up.user_id = auth.uid() AND up.role = 'admin'
+    )
+  );
+
+CREATE POLICY "Admins can update key requests" ON key_requests
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles up
+      WHERE up.user_id = auth.uid() AND up.role = 'admin'
+    )
+  );
+```
+
 ## Step 4: Configure Authentication URLs (CRITICAL)
 
 **This step is REQUIRED for email verification to work!**
